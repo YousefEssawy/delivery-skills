@@ -15,7 +15,8 @@ description: |
 
 # Change Impact Review — Skill
 
-> **القاعدة الذهبية:** أي تعديل في الكود أو القيمة لازم يتبعه **مراجعة كاملة لكل الأماكن المتأثرة** — حتى لو الارتباط مش واضح أو مش مباشر.
+> **Golden rule:** every change to code or to a value must be followed by a **full review of every
+> place it affects** — even when the link is not obvious or not direct.
 
 ## When this skill runs (Auto-Trigger Matrix)
 
@@ -24,7 +25,7 @@ description: |
 | Any Arabic trigger word (عدّل، غيّر، احذف، استبدل، صحّح، حدّث، انقل، أعد تسمية…) | Run all 5 phases |
 | Any English trigger word (edit, modify, update, change, fix, replace, delete, remove, rename, move, refactor, swap, override, patch, adjust, correct) | Run all 5 phases |
 | User mentions: a date, price, event title, product name, email template, notification, landing page, PDF report | Run all 5 phases even if no explicit trigger word |
-| User says "حاجة بسيطة" / "تغيير سريع" / "quick fix" | Run all 5 phases anyway — "quick fixes" are the highest-risk category |
+| User says "quick fix" / "small change" (Arabic: "حاجة بسيطة" / "تغيير سريع") | Run all 5 phases anyway — "quick fixes" are the highest-risk category |
 
 ## The 5 Mandatory Phases
 
@@ -46,6 +47,7 @@ grep -ri "<OLD_VALUE>" . --exclude-dir=node_modules --exclude-dir=.git
 grep -ri "<OLD_VALUE_camelCase>" .
 grep -ri "<OLD_VALUE_kebab-case>" .
 # For dates, check multiple formats:
+# (include the formats of every language the product uses, e.g. Arabic "2 يونيو 2026")
 grep -rE "(2026-06-02|02/06/2026|June 2, 2026|2 يونيو 2026)" .
 ```
 
@@ -64,7 +66,7 @@ Walk through EVERY layer below and confirm the value is/isn't present. Do not sk
 | **Documentation** | README, User Manual, System Overview, API docs, Credentials Document |
 | **Marketing** | Landing pages, blog posts, social media drafts, meta tags, OG images, schema.org JSON-LD |
 | **i18n** | EVERY locale file in EVERY supported language |
-| **Config / Env** | GitHub Secrets, env files, deployment manifests, feature flag configs |
+| **Config / Env** | CI/CD secrets and variables (e.g. GitHub Actions secrets, GitLab CI variables), env files, deployment manifests, feature flag configs |
 | **Tests** | Unit, integration, e2e — snapshots and fixtures included |
 
 ### Phase 3 — Source of Truth Check
@@ -74,7 +76,7 @@ For every value the change touches:
 - Is there a **single source of truth**? (Preferred: database row, or a `constants.ts`, or a config service.)
 - If duplicates exist:
   - **Best case:** refactor so the duplicates read from the SOT dynamically.
-  - **Acceptable fallback (time-constrained):** update ALL copies to match, AND log explicit tech debt with a GitHub issue + comment-banner above each copy: `// DUPLICATED VALUE — see issue #N`.
+  - **Acceptable fallback (time-constrained):** update ALL copies to match, AND log explicit tech debt with an issue in the project's tracker (GitHub Issues, Jira, Linear...) + comment-banner above each copy: `// DUPLICATED VALUE — see issue #N`.
   - **Forbidden:** updating one copy and leaving the others stale "because nobody will notice."
 
 ### Phase 4 — Verification Pass (Before You Say "Done")
@@ -96,7 +98,7 @@ grep -rci "<NEW_VALUE>" . --exclude-dir=node_modules --exclude-dir=.git
 #    - Generate at least one PDF/Excel sample
 ```
 
-If staging is available: deploy and smoke-test there before production.
+If a staging or test environment is available: deploy and smoke-test there before production.
 
 ### Phase 5 — Report Back
 
@@ -151,9 +153,12 @@ When ANY of these appears in the change, treat as P0 and double-check everything
 
 ## Integration with Other Skills
 
-- Works alongside `engineering:code-review` — Code Impact Review is a precondition for opening a PR.
-- Triggers `engineering:tech-debt` when duplicates are found that can't be deduped now.
-- Triggers `engineering:deploy-checklist` before any production deploy that touches user-facing values.
+Use these when they are installed (check the available-skills list; never guess a name):
+
+- A code-review skill (for example `code-review` or `review-all`) — Change Impact Review is a precondition for opening a PR.
+- A tech-debt skill, when duplicates are found that can't be deduped now.
+- A deploy-checklist skill, before any production deploy that touches user-facing values.
+- `i18n-locale-sync`, when the change touches translation files.
 
 ## Origin
 
