@@ -18,8 +18,10 @@ does not carry review rules of its own: it routes to the installed guards and me
 
 In every repository touched by the task (a workspace may hold several):
 
-- `git status --short` and `git diff --stat` against the base branch the work started from
-  (default `development`, else `main`), plus uncommitted changes.
+- `git status --short` and `git diff --stat` against the base branch the work started from: the
+  project's integration branch if its instructions name one (for example `development`), else the
+  remote default branch (`git symbolic-ref refs/remotes/origin/HEAD`, often `main`), plus uncommitted
+  changes. Use `git merge-base` so only the work's own commits are compared.
 - Group the changed files by kind (table below). Read the diff itself, not only file names.
 - If nothing changed, say so and stop.
 
