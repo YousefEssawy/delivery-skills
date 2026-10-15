@@ -1,13 +1,14 @@
 ---
 name: qa-rehearsal
 description: |
-  Test a finished story the way QA will, before it goes to Ready To Test: read every acceptance
-  criterion literally, split it into atomic claims, and try each claim live on the test
-  environment with the edge cases QA always tries (Arabic and RTL, boundaries, paging, account
-  states, concurrency, every error key, real-browser UI states). Records PASS / FAIL / NOT
-  PRODUCIBLE / AMBIGUOUS per claim with evidence. Use when a story or a batch is about to move to
-  Ready To Test, after a deploy to testing, or when the user says "QA rehearsal", "test it like QA",
-  "make sure QA finds nothing", "جرب زي الـ QA", "عايز QA متلاقيش بجز", "اتأكد من الـ AC".
+  Test a finished story the way QA will, before it is handed to QA (for example moved to Ready To
+  Test): read every acceptance criterion literally, split it into atomic claims, and try each claim
+  live on the test environment with the edge cases QA always tries (the product's languages, with
+  Arabic and RTL cases when the product supports them, boundaries, paging, account states,
+  concurrency, every error key, real-browser UI states). Records PASS / FAIL / NOT PRODUCIBLE /
+  AMBIGUOUS per claim with evidence. Works with any issue tracker (Jira, Linear, GitHub Issues...).
+  Use when a story or a batch is about to go to QA, after a deploy to the test environment, or when
+  the user says "QA rehearsal", "test it like QA", "make sure QA finds nothing", "جرب زي الـ QA", "عايز QA متلاقيش بجز", "اتأكد من الـ AC".
 ---
 
 # qa-rehearsal
@@ -17,10 +18,11 @@ A claim nobody tried live is not a pass. On one project QA filed a bug because a
 
 ## 1. Read the story live
 
-- Read the story from the board (description and **every** comment). Product-owner comments amend
-  the criteria; apply them. A saved copy is a cache, not the source.
+- Read the story from the issue tracker (Jira, Linear, GitHub Issues...): description and **every**
+  comment. Product-owner comments amend the criteria; apply them. A saved copy is a cache, not the source.
 - Read the decision register and any decision the story cites.
-- Skip stories already Done: never reopen or comment on them.
+- Skip stories already Done (or the tracker's equivalent closed status; status names vary per
+  team): never reopen or comment on them.
 
 ## 2. Split every criterion into atomic claims
 
@@ -36,9 +38,15 @@ AMBIGUOUS. Those go to the product owner as questions, all at once at the end.
 Use the test environment through a local console or tool that keeps tokens out of the chat, or the
 real web page for UI. For each claim, include the cases QA always tries:
 
-- **Text and language:** Arabic letter forms (أ/إ/آ/ا, ة/ه, ى/ي), diacritics, tatweel, Arabic-Indic and
-  Western digits, mixed Arabic and English, a word from the **middle** of a word, one character, the
-  maximum length, max+1, only spaces, emoji, a well-formed locale tag such as `en-US`.
+- **Text and language (every product):** a word from the **middle** of a word, one character, the
+  maximum length, max+1, only spaces, emoji, leading and trailing spaces, a well-formed locale tag
+  such as `en-US`, and text in every language the product supports.
+- **Arabic and RTL (when the product supports Arabic or another RTL language):** Arabic letter forms
+  (أ/إ/آ/ا, ة/ه, ى/ي), diacritics, tatweel, Arabic-Indic and Western digits, mixed Arabic and
+  English.
+- Adapt the language cases to the product's languages: for each one, add its own traps (accents and
+  case folding for French or German, Turkish dotted and dotless i, full-width characters for CJK,
+  and so on).
 - **Boundaries:** min-1 / min / max / max+1, empty, null, missing field, unknown field, wrong type.
 - **Paging:** page 1 -> 2 -> 3 with no repeat or skip, the last page, a changed filter with an old cursor.
 - **Account and relationship states:** restricted, muted, suspended, blocked, deleted, private
@@ -47,10 +55,11 @@ real web page for UI. For each claim, include the cases QA always tries:
   uniqueness or ordering. The losing request must get the **documented** error, not a bare 409.
 - **Every error key the story lists:** produce it and check the envelope (status, error code,
   `details[].field`, params).
-- **Web UI:** in a real browser, Arabic and English, light and dark, phone, tablet (912 and 1032 px
-  wide) and desktop. Open every dialog the story touches, open each select **by clicking it**, and
-  look at every empty field in Arabic (an empty field with `dir="auto"` renders left to right).
-  Keep a screenshot.
+- **Web UI:** in a real browser, every supported language (both directions when the product has
+  RTL), light and dark if themed, phone, tablet (the project's tablet breakpoints, for example 912
+  and 1032 px wide) and desktop. Open every dialog the story touches, open each select **by clicking
+  it**, and, in an RTL language, look at every empty field (an empty field with `dir="auto"` renders
+  left to right). Keep a screenshot.
 
 Shared test accounts: anything that changes an account or a relationship (status, privacy, block,
 follow, role) takes a lock file first, restores the exact previous state, then releases it. Hold it
@@ -65,7 +74,7 @@ Per claim: claim -> what was done -> result -> correlation id or screenshot -> o
 
 - **PASS**
 - **FAIL** - with the smallest fix
-- **NOT PRODUCIBLE ON TESTING** - only with the automated test that covers it, named
+- **NOT PRODUCIBLE ON THE TEST ENVIRONMENT** - only with the automated test that covers it, named
 - **AMBIGUOUS** - both readings, which one the code follows, the question for the product owner
 
 Write the file as you go, so a fresh session can continue from it. At the end: per story READY or
