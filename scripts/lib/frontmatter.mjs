@@ -27,7 +27,10 @@ export function parseFrontmatter(lines) {
       fields[key] = renderBlock(body, block[1], block[2]);
       i += body.length;
     } else {
-      fields[key] = unquote(rawValue.trim());
+      const continuation = collectIndented(lines, i + 1);
+      const foldedValue = [rawValue, ...continuation].map((l) => l.trim()).filter(Boolean).join(' ');
+      fields[key] = unquote(foldedValue);
+      i += continuation.length;
     }
   }
   return fields;
