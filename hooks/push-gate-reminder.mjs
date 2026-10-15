@@ -21,8 +21,15 @@ function readStdin() {
   });
 }
 
+const SHELL_REDIRECTION = /^\d*[<>]/;
+const CURRENT_BRANCH_ALIASES = new Set(['HEAD', '@']);
+
 function tokenize(segment) {
-  return segment.trim().split(/\s+/).map((token) => token.replace(/^["']|["']$/g, ''));
+  return segment
+    .trim()
+    .split(/\s+/)
+    .filter((token) => !SHELL_REDIRECTION.test(token))
+    .map((token) => token.replace(/^["']|["']$/g, ''));
 }
 
 /** Indexes of the tokens that are neither options nor option values. */
@@ -65,8 +72,11 @@ function deployingTargets(command, cwd) {
   for (const segment of command.split(COMMAND_SEPARATOR)) {
     const refspecs = pushRefspecs(segment);
     if (refspecs === null) continue;
-    const branches = refspecs.length > 0 ? refspecs.map(destinationBranch) : [currentBranch(cwd)];
-    for (const branch of branches) if (DEPLOYING_BRANCHES.has(branch)) targets.add(branch);
+    const destinations = refspecs.length > 0 ? refspecs.map(destinationBranch) : ['HEAD'];
+    for (const destination of destinations) {
+      const branch = CURRENT_BRANCH_ALIASES.has(destination) ? currentBranch(cwd) : destination;
+      if (DEPLOYING_BRANCHES.has(branch)) targets.add(branch);
+    }
   }
   return [...targets];
 }
