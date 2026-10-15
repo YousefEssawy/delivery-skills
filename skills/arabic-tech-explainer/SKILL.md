@@ -1,15 +1,15 @@
 ---
 name: arabic-tech-explainer
-description: Explain technical English content in Egyptian Arabic with English technical terms preserved, rendered as a clean right-to-left (RTL) widget where every English term, number, formula, and code snippet is bidi-isolated so the mixed Arabic/English text never scrambles. Use this skill WHENEVER the user pastes English technical material (ML/AI write-ups, papers, project notes, analyses, book summaries, design docs, math) and asks to "explain this in arabic", "اشرح ده بالعربي", or complains that a previous Arabic answer looked broken / scrambled / unclear because of the RTL-with-English mixing ("can't understand", "rtl arabic with english", "the output not clear"). Also trigger when the user wants the same Arabic-with-English-terms treatment applied to a follow-up explanation, or asks to turn this explanation approach into something reusable. The signature output is a visualize:show_widget rendering, NOT plain chat prose, because plain markdown is exactly what scrambles bidirectional text on mobile/RTL.
+description: Explain technical English content in Egyptian Arabic (or another Arabic variety the user asks for) with English technical terms preserved, rendered as a clean right-to-left (RTL) widget where every English term, number, formula, and code snippet is bidi-isolated so the mixed Arabic/English text never scrambles. Use this skill WHENEVER the user pastes English technical material (ML/AI write-ups, papers, project notes, analyses, book summaries, design docs, math) and asks to "explain this in arabic", "اشرح ده بالعربي", or complains that a previous Arabic answer looked broken / scrambled / unclear because of the RTL-with-English mixing ("can't understand", "rtl arabic with english", "the output not clear"). Also trigger when the user wants the same Arabic-with-English-terms treatment applied to a follow-up explanation, or asks to turn this explanation approach into something reusable. The signature output is a visualize:show_widget rendering, NOT plain chat prose, because plain markdown is exactly what scrambles bidirectional text on mobile/RTL.
 ---
 
 # Arabic Technical Explainer
 
-Explain English technical content for an Egyptian-Arabic-speaking engineer who wants the **explanation** in Egyptian Arabic but the **technical terms** kept in English. The hard part is not translation — it's typography. Mixed Arabic (RTL) and English/numbers/code (LTR) scrambles badly in normal chat markdown: term order flips, numbers jump to the wrong side of a sentence, tables and formulas break. This skill solves that by rendering into an RTL widget where every Latin-script run is bidi-isolated.
+Explain English technical content for an Arabic-speaking engineer who wants the **explanation** in Arabic (Egyptian Arabic by default) but the **technical terms** kept in English. The hard part is not translation — it's typography. Mixed Arabic (RTL) and English/numbers/code (LTR) scrambles badly in normal chat markdown: term order flips, numbers jump to the wrong side of a sentence, tables and formulas break. This skill solves that by rendering into an RTL widget where every Latin-script run is bidi-isolated.
 
 ## Why a widget and not chat prose
 
-Plain markdown in the chat is the thing that breaks. When you write Egyptian Arabic with inline English like "الـ AUC طلع 0.7029"، the browser's bidirectional algorithm frequently reorders the English token and the number relative to the surrounding Arabic, so the reader sees them in the wrong place. The user has *already complained about this* — that complaint is the core reason this skill exists. Do **not** answer these requests in chat prose. Render a `visualize:show_widget` with `dir="rtl"` and isolate every Latin run. If the visualizer is unavailable, fall back to chat prose but wrap each English/number run so it stays put (see Fallback below).
+Plain markdown in the chat is the thing that breaks. When you write Egyptian Arabic with inline English like "الـ AUC طلع 0.7029"، the browser's bidirectional algorithm frequently reorders the English token and the number relative to the surrounding Arabic, so the reader sees them in the wrong place. Readers hit exactly this and complain that the answer is unreadable — that is the core reason this skill exists. Do **not** answer these requests in chat prose. Render a `visualize:show_widget` with `dir="rtl"` and isolate every Latin run. If the visualizer is unavailable, fall back to chat prose but wrap each English/number run so it stays put (see Fallback below).
 
 ## The workflow
 
@@ -17,7 +17,7 @@ Plain markdown in the chat is the thing that breaks. When you write Egyptian Ara
 
 2. **Silently load the mockup module.** Call `visualize:read_me` with `modules: ["mockup"]` before the first `show_widget` of a session. Do not narrate this call — just do it, then render. (You only need to load it once per session.)
 
-3. **Decide the dialect/term split.** Narration, connective tissue, and explanation go in **Egyptian Arabic** (عامية مصرية), not Modern Standard Arabic — this is conversational explanation, not a formal report. Technical terms, library names, metric names, math symbols, numbers, code, and file names stay in **English**, exactly as written in the source. Never translate a technical term into Arabic (don't turn "embeddings" into "تضمينات"). When introducing an English term inside Arabic prose, prefix it with the Arabic article "الـ" where it reads naturally: "الـ embeddings", "الـ AUC".
+3. **Decide the dialect/term split.** Narration, connective tissue, and explanation go in **Egyptian Arabic** (عامية مصرية) by default, not Modern Standard Arabic — this is conversational explanation, not a formal report. If the user writes in another dialect (Gulf, Levantine, Maghrebi...) or asks for Modern Standard Arabic, use that instead; the typography rules below are the same for every variety. Technical terms, library names, metric names, math symbols, numbers, code, and file names stay in **English**, exactly as written in the source. Never translate a technical term into Arabic (don't turn "embeddings" into "تضمينات"). When introducing an English term inside Arabic prose, prefix it with the Arabic article "الـ" where it reads naturally: "الـ embeddings", "الـ AUC".
 
 4. **Render the widget** following the structure and styling rules below.
 
@@ -27,9 +27,9 @@ Plain markdown in the chat is the thing that breaks. When you write Egyptian Ara
 
 Wrap everything in a single RTL container and use these building blocks as the content needs them (not every section every time):
 
-- **Lead line** — one sentence framing what this chunk is about, in Egyptian Arabic.
-- **Section headings** (`<h3>`) — short, Egyptian Arabic, numbered with Arabic-Indic or Western numerals as fits.
-- **Prose paragraphs** — the explanation. Egyptian Arabic with isolated English terms.
+- **Lead line** — one sentence framing what this chunk is about, in the chosen Arabic variety.
+- **Section headings** (`<h3>`) — short, in the chosen Arabic variety, numbered with Arabic-Indic or Western numerals as fits.
+- **Prose paragraphs** — the explanation. Arabic with isolated English terms.
 - **Tables** — for comparisons, metric breakdowns, before/after. Right-aligned cells; numeric columns use the mono + isolated style.
 - **Code / formula blocks** — LTR, left-aligned, monospace, isolated as a whole.
 - **Callout boxes** — neutral (`.box`), success/positive (`.hi`), or warning/caution (`.warn`) for the source's caveats and "be careful about" notes.
@@ -50,7 +50,7 @@ These are what make the output readable. Read `references/rtl_widget_template.md
 
 ## What good looks like
 
-- Reads like a sharp colleague explaining the paper to you over coffee in Egyptian Arabic, not like a stiff translation.
+- Reads like a sharp colleague explaining the paper to you over coffee in their own Arabic, not like a stiff translation.
 - Every English term is exactly the term from the source, sitting cleanly in its place — no scrambling, no reordering.
 - The technical reasoning survives: blends, gates, confounds, ceilings, causal traps are explained correctly, with the source's hedges intact.
 - Tables and formulas are crisp and correctly oriented.
@@ -58,7 +58,7 @@ These are what make the output readable. Read `references/rtl_widget_template.md
 
 ## Fallback when the visualizer is unavailable
 
-If `visualize:show_widget` can't be used, answer in chat but still defend against scrambling: keep technical terms in English, and where a number or term would reorder, you can wrap it. Warn the user that chat rendering of mixed RTL/LTR is inherently fragile and offer the widget if the tool becomes available. Optionally offer to produce a Word/PDF file (the user often wants these explanations as deliverables for a committee or a vision doc), in which case use the docx/pdf skills and set the document direction to RTL.
+If `visualize:show_widget` can't be used, answer in chat but still defend against scrambling: keep technical terms in English, and where a number or term would reorder, you can wrap it. Warn the user that chat rendering of mixed RTL/LTR is inherently fragile and offer the widget if the tool becomes available. Optionally offer to produce a Word/PDF file (useful when the explanation is a deliverable to share), in which case use the docx/pdf skills and set the document direction to RTL.
 
 ## Reference files
 
