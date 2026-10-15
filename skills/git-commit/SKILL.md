@@ -1,7 +1,7 @@
 ---
 name: git-commit
 description: >-
-  Craft a clean, correctly-classified Conventional Commits message from the current git changes — read the actual diff to decide whether each change is a feat, fix, refactor, docs, test, chore, perf, style, build, ci, or revert — then present the message (and a split plan when changes span unrelated concerns) for the user to approve BEFORE committing. NEVER auto-commits, NEVER adds a Co-Authored-By or "Generated with" trailer, and writes the message in English only. Use this skill WHENEVER the user wants to commit work or wants a commit message written, even a quick one-liner. Triggers — English: "commit this", "commit my changes", "write a commit message", "make a commit", "stage and commit". وبالعربي: "اعمل كومت", "اعمل commit", "كومت الشغل/التغييرات", "اكتبلي رسالة كومت", "لخص اللي عملته في كومت منظم". Scope — any git repository; the type is decided from the diff, never guessed from the user wording.
+  Craft a clean, correctly-classified Conventional Commits message from the current git changes — read the actual diff to decide whether each change is a feat, fix, refactor, docs, test, chore, perf, style, build, ci, or revert — then present the message (and a split plan when changes span unrelated concerns) for the user to approve BEFORE committing. NEVER auto-commits, NEVER adds a Co-Authored-By or "Generated with" trailer (unless the project's or user's instructions require one), and writes the message in English only. Use this skill WHENEVER the user wants to commit work or wants a commit message written, even a quick one-liner. Triggers — English: "commit this", "commit my changes", "write a commit message", "make a commit", "stage and commit". وبالعربي: "اعمل كومت", "اعمل commit", "كومت الشغل/التغييرات", "اكتبلي رسالة كومت", "لخص اللي عملته في كومت منظم". Scope — any git repository; the type is decided from the diff, never guessed from the user wording.
 ---
 
 # Git Commit
@@ -100,14 +100,14 @@ Closes #123
 **Body** (include when the change isn't self-evident)
 - Explain the **why/context** — the diff already shows the *what*.
 - Wrap lines at ~72 columns.
-- When several related changes ship together, list them as grouped bullets. This is the "organized / مقسم" part — make the body scannable.
+- When several related changes ship together, list them as grouped bullets. This is the "organized" part — make the body scannable.
 - Skip the body entirely for trivial commits (a typo fix doesn't need a paragraph). Don't pad.
 
 **Footer**
 - `BREAKING CHANGE: ...` when public behavior/API breaks (the `type!:` shorthand is also fine).
 - Reference issues only if the user actually mentions them (`Closes #N`). Never invent issue numbers.
 
-**Always:** English only, **no** Co-Authored-By trailer, **no** "Generated with" line, **no** emoji.
+**Always:** English only, **no** Co-Authored-By trailer, **no** "Generated with" line (unless the project's or the user's instructions require one — see Hard rules), **no** emoji.
 
 ---
 
@@ -138,7 +138,7 @@ Each resulting commit should be **one coherent, self-contained change** that cou
 
 Show the full proposed message — or the split plan — and **stop**. Do not commit yet.
 
-This gate is the entire reason the skill exists: committing writes to the project history on the user's behalf, so the decision is theirs. Wait for explicit approval ("yes", "go", "اعملها", "تمام"...). If they ask for a tweak, revise and re-present. Commit **only** once they clearly approve.
+This gate is the entire reason the skill exists: committing writes to the project history on the user's behalf, so the decision is theirs. Wait for explicit approval ("yes", "go", or the same in the user's language, e.g. Arabic "اعملها", "تمام"...). If they ask for a tweak, revise and re-present. Commit **only** once they clearly approve.
 
 ---
 
@@ -167,7 +167,7 @@ For a split, repeat per commit in the planned order (`git add` the files for tha
 ## Hard rules (and why)
 
 - **Never commit without explicit approval.** The user chose review-first; committing on their behalf is theirs to approve.
-- **Never add a Co-Authored-By trailer or any "Generated with" line.** Clean commits, by the user's explicit choice.
+- **Never add a Co-Authored-By trailer or any "Generated with" line** — this skill's default, for clean commits. If the project's or the user's own instructions require an attribution trailer, follow them.
 - **Message is English only**, regardless of the language the user is chatting in — it keeps the repo log consistent and tooling-friendly.
 - **No destructive git operations** (`reset --hard`, `clean -fd`, `checkout --` that discards work, `push --force`, `commit --amend` on already-pushed commits) unless the user explicitly asks. This skill only inspects, stages, and commits.
 - **Classify from the diff**, never from the user's wording alone.
