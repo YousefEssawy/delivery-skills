@@ -12,10 +12,12 @@
  *   1. Does the whole PAGE scroll horizontally?  (pageHasHScroll)
  *   2. Which elements overflow their own box and are NOT inside a deliberate horizontal scroller?
  *      (offenders — these are the real bugs; each comes with a CSS selector to fix)
- *   3. Which elements extend past the right edge of the viewport?  (pastViewport)
+ *   3. Which elements extend past the right edge of the viewport, or past the left edge (the RTL
+ *      case)?  (pastViewport; each entry says which edge)
  *
  * Scope it to a subtree by passing a selector, e.g. run it against an open dialog:
- *   window.__overflowScan('.mat-mdc-dialog-surface, [role=dialog], app-dialog-shell')
+ *   window.__overflowScan('[role=dialog], dialog[open], .mat-mdc-dialog-surface')
+ * (add your app's own dialog selector if it uses a custom component)
  * With no argument it scans the whole document.
  *
  * A wide element inside an `overflow-x: auto/scroll` ancestor is INTENTIONAL horizontal scroll
@@ -73,10 +75,21 @@ window.__overflowScan = function (rootSelector) {
           overflowY: cs.overflowY, // overflow-y:auto is the usual culprit that forces overflow-x:auto
         });
       }
-      // element sticks out past the right edge of the viewport
+      // element sticks out past the right edge (LTR overflow) or the left edge (RTL overflow)
       const r = el.getBoundingClientRect();
-      if (r.right > vw + 1 && r.width > 20 && r.width <= 3000 && !inHorizontalScroller(el)) {
-        pastViewport.push({ selector: cssPath(el), right: Math.round(r.right), width: Math.round(r.width) });
+      if (r.width > 20 && r.width <= 3000 && !inHorizontalScroller(el)) {
+        const pastRight = r.right - vw;
+        const pastLeft = -r.left;
+        if (pastRight > 1 || pastLeft > 1) {
+          pastViewport.push({
+            selector: cssPath(el),
+            edge: pastRight > 1 ? 'right' : 'left',
+            by: Math.round(Math.max(pastRight, pastLeft)),
+            left: Math.round(r.left),
+            right: Math.round(r.right),
+            width: Math.round(r.width),
+          });
+        }
       }
     }
   }
@@ -94,7 +107,7 @@ window.__overflowScan = function (rootSelector) {
     pageScrollWidth: de.scrollWidth,
     pageClientWidth: de.clientWidth,
     offenders: dedupe(offenders, 'scrollWidth').slice(0, 15),
-    pastViewport: dedupe(pastViewport, 'right').slice(0, 15),
+    pastViewport: dedupe(pastViewport, 'by').slice(0, 15),
   }, null, 1);
 };
 
