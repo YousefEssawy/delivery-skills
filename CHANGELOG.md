@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.1 - 2026-10-16
+
+- README rewritten: how the skills fit together (diagram and stage table), and for every skill what it does, a prompt
+  to try and what you get. Skills written in Egyptian Arabic are marked.
+
 ## v1.0.0 - 2026-10-16
 
 First release.
