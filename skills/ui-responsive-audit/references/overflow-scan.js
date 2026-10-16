@@ -12,8 +12,8 @@
  *   1. Does the whole PAGE scroll horizontally?  (pageHasHScroll)
  *   2. Which elements overflow their own box and are NOT inside a deliberate horizontal scroller?
  *      (offenders — these are the real bugs; each comes with a CSS selector to fix)
- *   3. Which elements extend past the right edge of the viewport, or past the left edge (the RTL
- *      case)?  (pastViewport; each entry says which edge)
+ *   3. Which elements extend past the right edge of the viewport, or, for elements laid out RTL,
+ *      past the left edge?  (pastViewport; each entry says which edge)
  *
  * Scope it to a subtree by passing a selector, e.g. run it against an open dialog:
  *   window.__overflowScan('[role=dialog], dialog[open], .mat-mdc-dialog-surface')
@@ -79,7 +79,9 @@ window.__overflowScan = function (rootSelector) {
       const r = el.getBoundingClientRect();
       if (r.width > 20 && r.width <= 3000 && !inHorizontalScroller(el)) {
         const pastRight = r.right - vw;
-        const pastLeft = -r.left;
+        // Past the left edge only matters in RTL; in LTR it is the usual off-canvas trick
+        // (skip links at left:-9999px, closed drawers) and never makes the page scroll.
+        const pastLeft = getComputedStyle(el).direction === 'rtl' ? -r.left : 0;
         if (pastRight > 1 || pastLeft > 1) {
           pastViewport.push({
             selector: cssPath(el),
