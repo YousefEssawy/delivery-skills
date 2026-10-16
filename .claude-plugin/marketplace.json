@@ -1,0 +1,15 @@
+{
+  "name": "delivery-skills",
+  "owner": {
+    "name": "YousefEssawy",
+    "url": "https://github.com/YousefEssawy"
+  },
+  "description": "Agent skills for delivering stories end to end: planning, review, QA rehearsal, bug triage and releases.",
+  "plugins": [
+    {
+      "name": "delivery-skills",
+      "source": ".",
+      "description": "All delivery-skills skills, plus a reminder to run the full test gate before pushing to a deploying branch."
+    }
+  ]
+}
