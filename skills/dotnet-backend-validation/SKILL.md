@@ -105,9 +105,10 @@ Do this **only** if Step 0 found the wiring missing:
    layout).
    - If a bare `FluentValidation` package is referenced on its own, **remove it** to avoid version
      conflicts, and let the `AspNetCore` package bring a compatible version.
-   - Note: `FluentValidation.AspNetCore` auto-validation is no longer recommended by the FluentValidation
-     maintainers for new projects. If the user prefers, use manual validation or an endpoint/action
-     filter instead; say which one you chose.
+   - Note: the FluentValidation maintainers no longer recommend auto-validation for new projects (see
+     the [ASP.NET Core integration docs](https://docs.fluentvalidation.net/en/latest/aspnet.html)).
+     This skill keeps it as its default; if the user prefers, use manual validation or an
+     endpoint/action filter instead, and say which one you chose.
 2. Add this helper:
    ```csharp
    public static IServiceCollection AddFluentValidationConfig<T>(this IServiceCollection services)
