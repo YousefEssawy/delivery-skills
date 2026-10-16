@@ -4,8 +4,9 @@ description: |
   Judge new QA bugs before anyone fixes them: read each bug, its linked story with every comment,
   the decision register and the code, try it live, and classify it as a real bug, not a bug (by
   design, can't reproduce, environment) or a product decision. Drafts the reply comment with the
-  reporter mentioned (shown to the user before posting), moves real bugs to In Progress and starts
-  a test-first fix. Use when the user says "new bugs came in", "is this really a bug", "check the
+  reporter mentioned (shown to the user before posting), moves real bugs to In Progress (or the
+  tracker's equivalent) and starts a test-first fix. Works with any issue tracker (Jira, Linear,
+  GitHub Issues...). Use when the user says "new bugs came in", "is this really a bug", "check the
   bugs assigned to me", "شوف البجز الجديدة", "هل ديه بج بجد", "البجز اللي اترفعت عليا".
 ---
 
@@ -17,8 +18,8 @@ real.
 
 ## 1. List the bugs
 
-From the board: bugs assigned to the user (or the team) created since the last triage, newest first.
-Note each one's status, reporter, priority and linked issues. A bug key that cannot be read (deleted,
+From the issue tracker (Jira, Linear, GitHub Issues...): bugs assigned to the user (or the team)
+created since the last triage, newest first. Note each one's status, reporter, priority and linked issues. A bug key that cannot be read (deleted,
 no permission) is reported to the user, not guessed.
 
 ## 2. Read everything before judging
@@ -54,9 +55,10 @@ When the user overrides a verdict, the user's verdict stands.
   only after their yes, then check that the mention rendered.
 - **Product decision:** add the question to the project's open-questions file and the message for the
   product owner. Build nothing until it is answered.
-- **Real bug:** move it to In Progress (never further without the user's word). Fix test-first, with a
+- **Real bug:** move it to In Progress, or the tracker's equivalent working status (status names
+  vary per team; never further without the user's word). Fix test-first, with a
   regression test named after the bug key. If the bug is in a shared component, check every screen
-  that uses it. Fix in the next release batch (`release-batch`), then verify live, take a screenshot
+  that uses it. Fix in the next release batch (the `release-batch` skill, if installed), then verify live, take a screenshot
   for UI bugs, and draft the evidence comment for the user.
 - Record each verdict in the handoff and, for patterns, in the project's workflow lessons.
 

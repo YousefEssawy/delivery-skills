@@ -1,60 +1,89 @@
-# Inference Engine — استنتاج الفاليديشن المناسب
+# Inference engine — inferring the right validation
 
-الهدف: لكل field **ناقص validation**، نستنتج نوعه ونقترح الـ rules. مصادر الاستنتاج: الـ input `type` + **اسم** الـ field/control + الـ `label`/`placeholder` (lowercase + شيل `_`/`-`/camelCase قبل المطابقة).
+Goal: for every field **missing validation**, infer its type and propose rules. Sources for inference:
+the input `type` + the field / control **name** + the `label` / `placeholder` (lowercase them and strip
+`_` / `-` / camelCase before matching). Field names and labels may be in any of the product's languages
+— the table lists English signals plus Arabic examples; add the product's other languages.
 
-> **قاعدة أساسية**: الـ **format** ممكن تقترحه بثقة. الـ **required/optional** قرار business — اقترح واسأل، متفترضش.
+> **Core rule**: the **format** can be proposed with confidence. **required/optional** is a business
+> decision — propose and ask, never assume.
 
-## جدول الاستنتاج الكامل
+## Full inference table
 
-| Semantic | إشارات (type / name~) | الـ rules المقترحة |
+| Semantic | Signals (type / name~) | Proposed rules |
 |---|---|---|
-| **Email** | `type=email`؛ `email`,`mail`,`e-mail` | الـ built‑in email + `maxLength(254)` + trim |
-| **EG mobile** | `type=tel`؛ `phone`,`mobile`,`tel`,`موبايل`,`تليفون` | `^01[0125]\d{8}$` (11 رقم) |
-| **Intl phone** | فيه كلمة `international`/كود دولة | E.164: `^\+?[1-9]\d{7,14}$` |
-| **Person name** | `name`,`firstName`,`lastName`,`fullName`,`الاسم` | `min(2)`,`max(50)`، حروف عربي/لاتيني (`NAME_RE`) |
-| **Username** | `username`,`userName`,`login` | `min(3)`,`max(30)`، `^[a-zA-Z0-9._-]+$` |
-| **Password** | `type=password`؛ `password`,`pwd` | `min(8)`,`max(128)` + complexity (`PWD_RE`) |
-| **Confirm pwd** | `confirm`,`repeat`,`re-?password` | required + **match** للـ password field |
-| **National ID (EG)** | `nationalId`,`ssn`,`الرقم القومي` | `^[23]\d{13}$` (14 رقم) — basic |
-| **Age** | `type=number`؛ `age`,`السن` | integer، `min(18 أو 0)`،`max(120)` |
-| **Money / price** | `price`,`amount`,`salary`,`cost`,`السعر` | numeric، `>=0`، decimal scale=2، حد أقصى منطقي |
-| **Quantity** | `qty`,`quantity`,`count`,`الكمية` | integer، `>=1` |
-| **Date** | `type=date`؛ `date`,`التاريخ` | تاريخ صحيح + (حد أدنى/أقصى حسب السياق) |
-| **DOB** | `dob`,`birth`,`تاريخ الميلاد` | تاريخ صحيح + **مش في المستقبل** + حد أدنى للعمر |
-| **URL** | `type=url`؛ `url`,`website`,`link` | الـ built‑in url |
-| **OTP / code** | `otp`,`code`,`pin`,`verification` | بالظبط N رقم: `^\d{N}$` |
-| **IBAN** | `iban` | شكل أساسي + (مود‑97 اختياري) `^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$` |
-| **Postal / zip** | `zip`,`postal` | حسب الدولة |
-| **Free text** | الباقي / `description`,`notes` | required(?) + `maxLength` معقول (255/500/1000 حسب السياق) + trim |
-| **Checkbox/terms** | `agree`,`terms`,`accept` | لازم true (Angular: `requiredTrue`؛ Zod: `.literal(true)`) |
+| **Email** | `type=email`; `email`,`mail`,`e-mail` | the built‑in email validator + `maxLength(254)` + trim |
+| **Local mobile** | `type=tel`; `phone`,`mobile`,`tel`,`موبايل`,`تليفون` | the target market's format (see [Locale defaults](#locale-defaults)), e.g. Egypt `^01[0125]\d{8}$` (11 digits) |
+| **Intl phone** | the word `international` / a country-code field, or a multi-country product | E.164: `^\+?[1-9]\d{7,14}$` |
+| **Person name** | `name`,`firstName`,`lastName`,`fullName`,`الاسم` | `min(2)`,`max(50)`, letters in the product's scripts (`NAME_RE`) |
+| **Username** | `username`,`userName`,`login` | `min(3)`,`max(30)`, `^[a-zA-Z0-9._-]+$` |
+| **Password** | `type=password`; `password`,`pwd` | `min(8)`,`max(128)` + complexity (`PWD_RE`) |
+| **Confirm pwd** | `confirm`,`repeat`,`re-?password` | required + **match** the password field |
+| **National ID** | `nationalId`,`ssn`,`الرقم القومي` | the target country's format, e.g. Egypt `^[23]\d{13}$` (14 digits) — basic |
+| **Age** | `type=number`; `age`,`السن` | integer, `min(18 or 0)`, `max(120)` |
+| **Money / price** | `price`,`amount`,`salary`,`cost`,`السعر` | numeric, `>=0`, decimal scale per currency (usually 2), a sensible max |
+| **Quantity** | `qty`,`quantity`,`count`,`الكمية` | integer, `>=1` |
+| **Date** | `type=date`; `date`,`التاريخ` | valid date + (min / max depending on context) |
+| **DOB** | `dob`,`birth`,`تاريخ الميلاد` | valid date + **not in the future** + minimum age |
+| **URL** | `type=url`; `url`,`website`,`link` | the built‑in url validator |
+| **OTP / code** | `otp`,`code`,`pin`,`verification` | exactly N digits: `^\d{N}$` |
+| **IBAN** | `iban` | basic shape + (optional mod‑97) `^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$` |
+| **Postal / zip** | `zip`,`postal` | per country |
+| **Free text** | everything else / `description`,`notes` | required(?) + a sensible `maxLength` (255/500/1000 by context) + trim |
+| **Checkbox/terms** | `agree`,`terms`,`accept` | must be true (Angular: `requiredTrue`; Zod: `.literal(true)`) |
 
-## Regex library (نسخة JS)
+## Regex library (JS)
 
 ```js
-EG_MOBILE = /^01[0125]\d{8}$/;                 // 010/011/012/015 + 8 أرقام
 INTL_PHONE = /^\+?[1-9]\d{7,14}$/;             // E.164
-NAME_RE   = /^[\p{L}\p{M} .'\-]+$/u;            // عربي + لاتيني + مسافات (لازم u flag)
+NAME_RE   = /^[\p{L}\p{M} .'\-]+$/u;            // letters of any script + marks + spaces (needs the u flag)
 USERNAME  = /^[a-zA-Z0-9._-]+$/;
 PWD_RE    = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,128}$/;
-EG_NID    = /^[23]\d{13}$/;                     // 14 رقم، أول رقم = القرن
 IBAN_RE   = /^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/;
+
+// Egypt block (use when the product targets Egypt)
+EG_MOBILE = /^01[0125]\d{8}$/;                 // 010/011/012/015 + 8 digits
+EG_NID    = /^[23]\d{13}$/;                     // 14 digits, first digit = century
 ```
 
-ملاحظات تطبيقية:
-- **email/url**: فضّل الـ built‑in (`Validators.email`, zod `.email()`, yup `.email()`) على regex بإيد.
-- **NAME_RE / PWD_RE** محتاجين `RegExp` بـ `u`/flags — في Angular استخدم RegExp object مش string.
-- **EG_NID** ده فحص أساسي (14 رقم + century digit). الفحص الكامل (تاريخ + محافظة + checksum) اختياري — اعرضه كـ "اختياري للتشديد".
-- **EG_MOBILE** داخل HTML `pattern` attribute: استخدم `^01[0125][0-9]{8}$` (الـ `\d` مش مضمون في كل المتصفحات).
+Practical notes:
+- **email / url**: prefer the built‑in validator (`Validators.email`, zod `.email()`, yup `.email()`)
+  over a hand-written regex.
+- **NAME_RE / PWD_RE** need a `RegExp` with the `u` / other flags — in Angular use a RegExp object, not
+  a string.
+- **NAME_RE** accepts letters of every script. If the product only accepts some scripts (for example
+  Arabic + Latin), narrow it with script classes such as `\p{Script=Arabic}` and `\p{Script=Latin}`.
+- **EG_NID** is a basic check (14 digits + century digit). The full check (birth date + governorate +
+  checksum) is optional — offer it as "optional hardening".
+- Inside an HTML `pattern` attribute, write digit classes as `[0-9]`, for example
+  `^01[0125][0-9]{8}$`.
 
-## EG locale defaults (تتطبّق افتراضيًا)
-- الموبايل = الشكل المصري (فوق). لو المشروع دولي، اسأل وبدّل لـ `INTL_PHONE`.
-- الأسماء بتسمح **عربي + لاتيني** (مش لاتيني بس).
-- National ID = الشكل المصري (14 رقم). 
-- العملة الافتراضية decimal scale = 2.
+## Locale defaults
 
-> دايمًا اعرض الـ defaults دي كـ **اقتراحات قابلة للتعديل**، واسأل لو السياق مش مصري/عربي.
+Pick the defaults from the locales and markets found in Step 0, not from a fixed country:
 
-## لما الاستنتاج مش مؤكّد
-- النوع مش واضح من الاسم/النوع → اقترح "free text" + `maxLength` آمن، وعلّمها **منخفضة الثقة**.
-- required ولا optional مش واضح → **متخمّنش**؛ اكتب "غير محدّد — أكّد" واسأل (راجع الباك لو متاح لأنه أوضح إشارة).
-- field فيه قاعدة في الباك بس مفيش في الـ frontend → الاقتراح المباشر = اعكس قاعدة الباك (consistency).
+- **Phone**: one target country → that country's mobile format; several countries or unknown → E.164
+  (`INTL_PHONE`), ideally with a country selector.
+- **Names**: allow every script the product's users write in (not Latin only).
+- **National ID / postal code**: only when the product targets a specific country; use that country's
+  format.
+- **Currency**: decimal scale per currency (most use 2).
+
+**Egypt block** (apply when the product targets Egypt):
+- mobile = the Egyptian format (`EG_MOBILE`);
+- names allow **Arabic + Latin**;
+- national ID = the Egyptian format (`EG_NID`, 14 digits);
+- currency EGP, decimal scale = 2.
+
+For another market, add its block in the same shape (mobile, national ID, postal code, currency), and
+ask when the market is not clear.
+
+> Always present these defaults as **editable suggestions**, and ask when the target market is unclear.
+
+## When the inference is uncertain
+- Type not clear from the name / type → propose "free text" + a safe `maxLength`, and mark it **low
+  confidence**.
+- Required or optional not clear → **don't guess**; write "unspecified — confirm" and ask (check the
+  backend if available, since it is the clearest signal).
+- A field with a rule on the backend but none on the frontend → the direct suggestion = mirror the
+  backend rule (consistency).

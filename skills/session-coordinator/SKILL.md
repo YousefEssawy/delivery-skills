@@ -1,9 +1,9 @@
 ---
 name: session-coordinator
 description: |
-  Run a multi-session, multi-account sprint as the coordinator: split work into builder, reviewer
-  and gate sessions (on a second account to save quota), give each a brief file and a name, keep one
-  heavy run at a time with lock files and a RAM floor, recover after a crash or power loss, keep the
+  Run a multi-session sprint as the coordinator: split work into builder, reviewer and gate
+  sessions (optionally on a second account to save quota), give each a brief file and a name, keep
+  one heavy run at a time with lock files and a RAM floor, recover after a crash or power loss, keep the
   handoff current and pushed, and bring only decisions and evidence to the user. Use when the user
   says "coordinate", "split the work across sessions", "use the other account", "the laptop died,
   continue", "وزع الشغل على السيشنز", "اشتغل بالاكونت التاني", "اللاب فصل كمل", "نسق الشغل".
@@ -16,10 +16,11 @@ sees outcomes, evidence and the few things that need their word.
 
 ## Roles and briefs
 
-- **One coordinator** (this session). It talks to the user, reads the board, holds the handoff, runs
-  browser work (only it may have the browser), and approves nothing on the user's behalf.
+- **One coordinator** (this session). It talks to the user, reads the issue tracker (Jira, Linear,
+  GitHub Issues...), holds the handoff, runs browser work (only it may have the browser), and approves nothing on the user's behalf.
 - **Builders** (one per story or fix set, fresh session each), **one reviewer** per batch (read-only),
-  **one gate runner** per batch. Heavy work goes to the second account to save the coordinator's quota.
+  **one gate runner** per batch. If the user has a second account, heavy work goes there to save the
+  coordinator's quota; otherwise run the sessions on one account, one heavy session at a time.
 - Write each task as a **brief file** in the project's state folder (what to build, branch and
   worktree, rules, test-first, skills to load and name, lock and RAM rules, what to report, what not
   to touch). The user pastes one line into a fresh session: `Read <brief> and do exactly what it says.`
@@ -34,7 +35,7 @@ sees outcomes, evidence and the few things that need their word.
 
 - One heavy run at a time per machine: a lock file (`.testrun.lock` with owner, branch, time, pid)
   taken exclusively; others wait and retry. A stale lock (process gone) is removed by the coordinator.
-- Before a full gate: free RAM of at least 4 GB; ask the user to close idle sessions and apps.
+- Before a full gate: enough free RAM (for example at least 4 GB, or the project's floor); ask the user to close idle sessions and apps.
 - Shared test accounts: a separate account lock for anything that changes an account or relationship,
   held at most 10 minutes, with the previous state restored.
 
@@ -53,8 +54,8 @@ sees outcomes, evidence and the few things that need their word.
 - The handoff file holds what is done, what runs where, branch tips, locks, accounts and what does not
   travel; it is pushed to a branch so another machine or account can continue.
 - Product decisions go into the project's decision record; standing rules go into the project's
-  workflow file or the shared setup repo, never only into memory.
-- Before reporting "done": re-read the board, verify the claim live, and say what was not run.
+  workflow file (or the user's shared setup repository, if they keep one), never only into memory.
+- Before reporting "done": re-read the tracker, verify the claim live, and say what was not run.
 
 ## Talking to the user
 

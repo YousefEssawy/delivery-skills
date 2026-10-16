@@ -1,143 +1,192 @@
 ---
 name: frontend-form-validation
-description: "Audit and harden forms in an Angular or React frontend — map every form's inputs (required/optional + existing validation rules), infer validation for un-validated inputs from the field type/name (email, phone, name, password …, Egyptian locale defaults), optionally compare against a SEPARATE .NET (FluentValidation) backend to catch frontend↔backend mismatches, and produce a severity-ranked RTL-Arabic report via the arabic-tech-explainer skill — THEN apply fixes in the project's own style after the user approves. Use WHENEVER the user wants to review / audit / harden frontend forms or their validation. Triggers — English: 'audit my forms', 'review form validation', 'which inputs have no validation'. وبالعربي: 'راجع الفورمز', 'افحص الفاليديشن', 'الانبوت ده محتاج فاليديشن ايه', 'قارن فاليديشن الفرونت والباك'. Scope — Angular (Reactive + Template-driven) و React (RHF / Formik / Zod·Yup / controlled)، بتتكيّف مع approach المشروع. مش للـ backend نفسه (استخدم dotnet-backend-validation) ولا لفريمورك تاني."
+description: "Audit and harden forms in an Angular or React frontend — map every form's inputs (required/optional + existing validation rules), infer validation for un-validated inputs from the field type/name (email, phone, name, password …, with locale-aware defaults such as Egyptian phone and national-ID formats when the product targets Egypt), optionally compare against a SEPARATE .NET (FluentValidation) backend to catch frontend↔backend mismatches, and produce a severity-ranked report in the user's language — THEN apply fixes in the project's own style after the user approves. Use WHENEVER the user wants to review / audit / harden frontend forms or their validation. Triggers — English: 'audit my forms', 'review form validation', 'which inputs have no validation', 'compare frontend and backend validation'. Arabic: 'راجع الفورمز', 'افحص الفاليديشن', 'الانبوت ده محتاج فاليديشن ايه', 'قارن فاليديشن الفرونت والباك'. Scope — Angular (Reactive + Template-driven) and React (RHF / Formik / Zod·Yup / controlled), adapting to the project's approach. Not for the backend itself (use dotnet-backend-validation) nor for other frameworks."
 ---
 
 # Frontend Form Validation
 
-بتعمل **أوديت كامل للـ forms** في مشروع **Angular** أو **React**: تحصر كل form، تطلّع لكل input هو required ولا optional وعليه أنهي validation rules، تستنتج الفاليديشن المناسب للـ inputs اللي ملهاش حاجة، وتقارن (لو متاح) مع **.NET backend منفصل** عشان تلاقي الـ frontend↔backend mismatches، وتعرض **تقرير مفصّل** بنقاط الضعف مرتّبة بالـ severity. وبعد موافقة المستخدم بس، **تطبّق** التعديلات بنفس ستايل المشروع.
+Runs a **full audit of the forms** in an **Angular** or **React** project: lists every form, records
+for each input whether it is required or optional and which validation rules it has, infers suitable
+validation for inputs that have none, compares (when available) against a **separate .NET backend** to
+find frontend↔backend mismatches, and presents a **detailed report** of the weak points ranked by
+severity. Only after the user approves does it **apply** the changes, in the project's own style.
 
-## الفلسفة (اقراها قبل ما تبدأ)
+## Principles (read before you start)
 
-- **اكتشف، متفترضش.** المشروع ممكن يكون Reactive Forms أو Template-driven أو RHF أو Formik أو schema بـ Zod/Yup أو مجرد controlled `useState`. اكتشف الـ approach الفعلي من الكود الأول، وبعدها اشتغل بيه.
-- **الـ format rules ممكن تقترحها بثقة؛ بس الـ required/optional قرار business.** خلّي input optional يبقى required = تغيير في منطق الـ business — **اقترحه واسأل**، متغيّروش لوحدك.
-- **التقرير الأول، التطبيق بعد الموافقة.** الـ skill ليها **مرحلتين**، الـ default إنها توقف بعد التقرير.
-- **ممنوع القطع الصامت.** لو عملت sampling (مفحصتش كل الفورمز) — **قول كده صراحة** في التقرير.
-- **نقطة الخطر الأهم في full-stack audit**: field متحقّق منه في الـ frontend بس **مش** في الباك = **security gap** (الـ client validation بيتباي-باس بسهولة). والعكس (متحقق في الباك بس مش frontend) = **UX gap**. الاتنين لازم يطلعوا في التقرير.
+- **Discover, don't assume.** The project may use Reactive Forms, Template-driven forms, RHF, Formik, a
+  Zod/Yup schema, or plain controlled `useState`. Find the actual approach in the code first, then work
+  with it.
+- **Format rules can be proposed with confidence; required/optional is a business decision.** Making
+  an optional input required changes business logic — **propose it and ask**, never change it on your
+  own.
+- **Report first, apply after approval.** The skill has **two phases**; by default it stops after the
+  report.
+- **Never cut silently.** If you sampled (did not check every form), **say so explicitly** in the
+  report.
+- **The most important risk in a full-stack audit**: a field validated on the frontend only and **not**
+  on the backend = a **security gap** (client validation is trivially bypassed). The reverse (validated
+  on the backend only, not on the frontend) = a **UX gap**. Both must appear in the report.
 
-## المرحلتين
+## The two phases
 
-- **Phase 1 — Audit & Report** (read-only، الـ default): حصر + استنتاج + مقارنة بالباك + تقرير RTL + سؤال "نطبّق إيه؟".
-- **Phase 2 — Apply** (write، بعد الموافقة بس): تطبّق المعتمد بنفس ستايل المشروع، أصغر دفعة آمنة الأول.
+- **Phase 1 — Audit & Report** (read-only, the default): inventory + inference + backend comparison +
+  report + the question "what should I apply?".
+- **Phase 2 — Apply** (writes, only after approval): apply what was approved, in the project's style,
+  smallest safe batch first.
 
-**قاعدة الاختيار**: أي طلب "راجع / افحص / أوديت / إيه الناقص / قارن" → ابدأ **Phase 1**. أول ما المستخدم يوافق على اقتراحات → نفّذ **Phase 2** على اللي اتعتمد بس. لو الطلب صريح "ظبّط الفاليديشن في الفورم الفلاني" → اعمل Phase 1 سريعة على الفورم ده ثم اعرض الـ apply.
+**Choosing a phase**: any "review / check / audit / what is missing / compare" request → start
+**Phase 1**. As soon as the user approves suggestions → run **Phase 2** on the approved ones only. If
+the request is explicitly "fix the validation in form X" → run a quick Phase 1 on that form, then offer
+the apply.
 
 ---
 
-## Step 0 — اكتشاف المشروع (دايمًا الأول)
+## Step 0 — Discover the project (always first)
 
-قبل أي حاجة، افهم شكل المشروع. الهدف: تعرف الفريمورك، الـ form approach، **والـ patterns الموجودة** عشان نعيد استخدامها بدل ما نعمل rework.
+Before anything else, understand the project. The goal: know the framework, the form approach, **and
+the existing patterns**, so you reuse them instead of reworking.
 
-1. **الفريمورك**: `package.json` →
-   - `@angular/core` → **Angular**. اقرا `references/angular.md`.
-   - `react` → **React**. اقرا `references/react.md`.
-   - الاتنين موجودين (monorepo) → اعملهم بالترتيب.
-2. **الـ form approach** (مهم — ده اللي بيتكيّف): اكتشفه بالـ grep حسب الجدول في ملف الفريمورك. ساعات المشروع بيخلط (مثلاً RHF + zodResolver) — الـ source of truth ساعتها هو الـ schema مش الـ register.
-3. **الـ patterns الموجودة** (عشان نتجنب الـ rework): دوّر على وسجّل:
-   - custom validators / shared validation directives أو utils (Angular: functions بترجّع `ValidationErrors|null`؛ React: helpers أو shared zod/yup schemas).
-   - convention رسائل الأخطاء: i18n keys (مثلاً `errors.required`) ولا نصوص inline؟ اتبع اللي المشروع ماشي عليه.
-   - أي regex/constants متعرّفة مسبقًا (EG phone، national id، إلخ) — استخدمها زي ما هي.
-4. **الفورمز نفسها** (مش بس اللي جوه `<form>`): اعتمد على الـ **control bindings** مش التاج:
+1. **Framework**: `package.json` →
+   - `@angular/core` → **Angular**. Read `references/angular.md`.
+   - `react` → **React**. Read `references/react.md`.
+   - Both present (monorepo) → handle them in turn.
+2. **Form approach** (important — this is what adapts): detect it with the grep table in the framework
+   file. Projects sometimes mix (for example RHF + zodResolver) — then the source of truth is the
+   schema, not the `register` call.
+3. **Existing patterns** (to avoid rework): look for and record
+   - custom validators / shared validation directives or utils (Angular: functions returning
+     `ValidationErrors|null`; React: helpers or shared zod/yup schemas);
+   - the error-message convention: i18n keys (for example `errors.required`) or inline text? Follow
+     what the project does;
+   - any predefined regex / constants (phone, national ID, postal code …) — reuse them as they are;
+   - the **locales and markets the product targets** (supported languages, country selectors, phone
+     prefixes, currency) — they decide which locale defaults in `references/inference.md` apply.
+4. **The forms themselves** (not only what is inside a `<form>` tag): rely on the **control bindings**,
+   not the tag:
    - Angular: `[formGroup]` / `formControlName` / `[(ngModel)]` / `#x="ngModel"`.
-   - React: `useForm` / `register(` / `<Formik` / `<Field` / `useState` + `value=`+`onChange=`.
+   - React: `useForm` / `register(` / `<Formik` / `<Field` / `useState` + `value=` + `onChange=`.
 
 ```bash
-# الفريمورك
+# framework
 cat package.json | grep -E '"@angular/core"|"react"|"react-hook-form"|"formik"|"zod"|"yup"'
-# نقاط دخول الفورمز (Angular)
+# form entry points (Angular)
 grep -rln "formControlName\|\[formGroup\]\|ngModel" --include=*.html --include=*.ts src/ 2>/dev/null
-# نقاط دخول الفورمز (React)
+# form entry points (React)
 grep -rln "useForm\|register(\|<Formik\|useFormik\|validationSchema" --include=*.tsx --include=*.jsx src/ 2>/dev/null
-# الـ patterns الموجودة
+# existing patterns
 grep -rln "ValidationErrors\|zod\|yup\|i18n\|translate(" src/ 2>/dev/null | head
 ```
 
-> لو المشروع كبير، اعمل scan ذكي (focus على فولدرات الفورمز/الـ features) وقول في التقرير إنك عملت كده.
+> If the project is large, scan smartly (focus on the form / feature folders) and say in the report
+> that you did.
 
 ---
 
-## Step 1 — حصر كل form وكل field
+## Step 1 — Inventory every form and every field
 
-لكل form اكتشفته، طلّع لكل field: **الاسم، النوع (inferred)، required/optional، الـ validation rules الموجودة، ومصدرها** (الـ schema ولا inline ولا attribute). التفاصيل في ملف الفريمورك.
+For each form you found, record per field: **name, type (inferred), required/optional, existing
+validation rules, and where they come from** (schema, inline, or attribute). Details are in the
+framework file.
 
-- **required/optional**: من وجود `Validators.required` / `required` attribute / `.required()`/`.nonempty()` في الـ schema / `register(... {required})`. لو مش متحدّد بوضوح → علّمه **"غير محدّد — أكّد"**.
-- لو فيه schema (Zod/Yup): الـ schema هو الـ **source of truth**، مش الـ JSX.
+- **required/optional**: from `Validators.required` / the `required` attribute / `.required()` /
+  `.nonempty()` in the schema / `register(... {required})`. If it is not clearly set → mark it
+  **"unspecified — confirm"**.
+- If there is a schema (Zod/Yup): the schema is the **source of truth**, not the JSX.
 
 ---
 
-## Step 2 — الاستنتاج (Inference engine)
+## Step 2 — Inference engine
 
-لكل field عليه **fالاليديشن ناقص**، استنتج النوع الـ semantic من: الـ input `type` + اسم الـ field/control + الـ label/placeholder، واقترح الـ rules المناسبة. الجدول الكامل + الـ regex library + الـ **EG locale defaults** (الموبايل المصري، National ID، الأسماء عربي/لاتيني) في `references/inference.md`.
+For each field **missing validation**, infer its semantic type from the input `type` + the field /
+control name + the label / placeholder, and propose suitable rules. The full table + the regex library
++ the **locale defaults** (for example the Egypt block: Egyptian mobile, national ID, Arabic/Latin
+names) are in `references/inference.md`.
 
-ملخص سريع:
+Quick summary:
 
-| النوع | إشارات الاكتشاف | الـ rules المقترحة (المبدأ) |
+| Type | Detection signals | Proposed rules (principle) |
 |---|---|---|
-| Email | `type=email`، name~`email/mail` | required(?) + الـ built-in email + maxLength + trim |
-| EG phone | name~`phone/mobile/tel` | required(?) + `^01[0125]\d{8}$` |
-| Person name | name~`name/firstName` | required(?) + min/max length + letters عربي/لاتيني |
-| Password | `type=password` | required + minLength(8) + complexity؛ confirm = match |
+| Email | `type=email`, name~`email/mail` | required(?) + the built-in email validator + maxLength + trim |
+| Phone | name~`phone/mobile/tel` | required(?) + the target market's format (e.g. Egypt `^01[0125]\d{8}$`, or E.164) |
+| Person name | name~`name/firstName` | required(?) + min/max length + letters in the product's scripts |
+| Password | `type=password` | required + minLength(8) + complexity; confirm = match |
 | Money | name~`price/amount/salary` | numeric + `>=0` + decimal scale + max |
-| Date / DOB | `type=date`، name~`date/dob` | valid date + (DOB مش في المستقبل / حد أدنى للعمر) |
-| Free text | default | required(?) + maxLength معقول + trim |
+| Date / DOB | `type=date`, name~`date/dob` | valid date + (DOB not in the future / minimum age) |
+| Free text | default | required(?) + a sensible maxLength + trim |
 
-> القاعدة الذهبية للـ format زي email: **استخدم الـ built-in بتاع الفريمورك** (`Validators.email` / `.email()`)، مش regex معمول بإيد.
-
----
-
-## Step 3 — المقارنة بالباك (اختياري — .NET في ريبو منفصل)
-
-لو المستخدم عايز المقارنة، اطلب منه **path للريبو بتاع الـ .NET backend**. بعدها اقرا `references/backend-dotnet.md` — بيشرح إزاي:
-1. تلاقي الـ `AbstractValidator<T>` والـ request models في الريبو ده.
-2. تربط كل frontend form بالـ DTO بتاعه (عن طريق الـ endpoint URL في الـ API service).
-3. تطلّع **mismatch matrix** لكل field: ✅ متطابق / 🔴 frontend-only (security gap) / 🔴 backend-only (UX gap) / 🟡 rules مختلفة / ⚪ موجود ناحية واحدة.
-
-> لو احتجت **تظبط الباك نفسه**، مش بتعمله هنا — حوّل لـ skill: **`dotnet-backend-validation`**.
+> Golden rule for formats like email: **use the framework's built-in validator** (`Validators.email` /
+> `.email()`), not a hand-written regex.
 
 ---
 
-## Step 4 — التقرير (عن طريق arabic-tech-explainer)
+## Step 3 — Compare with the backend (optional — .NET in a separate repo)
 
-اعرض النتيجة كـ **RTL widget** عن طريق skill: **`arabic-tech-explainer`** (شيل الـ `mockup` module واستخدم الـ template بتاعه — متعملش CSS من الأول). الستراكتشر الإلزامي للتقرير + مثال widget في `references/report-template.md`. لازم يحتوي على:
+If the user wants the comparison, ask for the **path to the .NET backend repository**. Then read
+`references/backend-dotnet.md` — it explains how to:
+1. find the `AbstractValidator<T>` classes and request models in that repo;
+2. link each frontend form to its DTO (through the endpoint URL in the API service);
+3. produce a **mismatch matrix** per field: ✅ consistent / 🔴 frontend-only (security gap) / 🔴
+   backend-only (UX gap) / 🟡 different rules / ⚪ present on one side only.
 
-1. **ملخص**: عدد الفورمز / الـ fields / اللي عليها validation / الـ gaps / الـ mismatches + risk عام.
-2. **جدول لكل form**: field · type (inferred) · required/optional · frontend rules · backend rules · status · suggested rule.
-3. **نقاط الضعف مرتّبة severity**: High (auth/money/PII/dates من غير validation، وأي frontend-only rule) ← Medium (search/filter، rules مختلفة) ← Low.
-4. **frontend ↔ backend mismatch** (لو الباك متفحص).
-5. **اللي معمول كويس** (positive — مش بس النواقص).
-6. **الاقتراحات + سؤال صريح**: "تحب أطبّق أنهي اقتراحات؟" — وانتظر الموافقة.
+> If the backend itself needs fixing, do not do it here — hand it to the **`dotnet-backend-validation`**
+> skill.
 
 ---
 
-## Phase 2 — Apply (بعد الموافقة بس)
+## Step 4 — The report
 
-طبّق **المعتمد بس**، بنفس approach المشروع (متدخّلش library جديدة):
-- **Angular Reactive**: ضيف للـ validators array بتاعة الـ control + markup للرسالة + اربط بـ `aria`. (تفاصيل في `references/angular.md`.)
-- **Angular Template-driven**: validation attributes + error block متربط بالـ template ref.
-- **React schema-driven**: عدّل الـ **schema** (Zod/Yup) — هو الـ source of truth.
-- **React RHF inline**: options جوه `register(...)`.
-- **React controlled**: validation logic في الـ handler + رسالة. (تفاصيل في `references/react.md`.)
+Write the report **in the user's language**, as markdown tables by default. If the user writes Arabic
+and the **`arabic-tech-explainer`** skill is installed, you may render it as an RTL widget through that
+skill instead (optional, not required). The mandatory structure and a widget example are in
+`references/report-template.md`. It must contain:
 
-**قواعد التطبيق**:
-- أصغر دفعة آمنة الأول؛ بلّغ بكل ملف اتغيّر.
-- أعد استخدام الـ patterns/الـ regex/الـ i18n keys اللي لقيتها في Step 0.
-- **متغيّرش required↔optional** غير لما المستخدم يأكّد (ده business logic).
-- لو متاح: `lint` / `build` بعد التعديل لازم يعدّي نضيف.
+1. **Summary**: number of forms / fields / fields with validation / gaps / mismatches + overall risk.
+2. **A table per form**: field · type (inferred) · required/optional · frontend rules · backend rules ·
+   status · suggested rule.
+3. **Weak points ranked by severity**: High (auth / money / PII / dates without validation, and any
+   frontend-only rule) → Medium (search / filter, divergent rules) → Low.
+4. **Frontend ↔ backend mismatches** (if the backend was checked).
+5. **What is done well** (positives — not only gaps).
+6. **Suggestions + an explicit question**: "Which suggestions should I apply?" — and wait for approval.
+
+---
+
+## Phase 2 — Apply (only after approval)
+
+Apply **only what was approved**, with the project's approach (do not introduce a new library):
+- **Angular Reactive**: add to the control's validators array + message markup + `aria` wiring.
+  (Details in `references/angular.md`.)
+- **Angular Template-driven**: validation attributes + an error block bound to the template ref.
+- **React schema-driven**: edit the **schema** (Zod/Yup) — it is the source of truth.
+- **React RHF inline**: options inside `register(...)`.
+- **React controlled**: validation logic in the handler + a message. (Details in `references/react.md`.)
+
+**Apply rules**:
+- Smallest safe batch first; report every file changed.
+- Reuse the patterns / regex / i18n keys you found in Step 0. New message keys go into every locale
+  file (the `i18n-locale-sync` skill checks parity if it is installed).
+- **Never flip required↔optional** unless the user confirms (it is business logic).
+- If available: `lint` / `build` must pass cleanly after the change.
 
 ---
 
 ## Definition of done
 
-- ✅ كل الفورمز (أو اللي اخترتها مع ذكر السبب) اتحصرت، وكل field عليه: type + required/optional + rules + مصدرها.
-- ✅ كل field ناقص validation ليه **اقتراح** مبني على نوعه (مع EG defaults حيث ينطبق).
-- ✅ لو الباك متفحص: mismatch matrix فيها الـ security gaps والـ UX gaps بوضوح.
-- ✅ التقرير اتعرض كـ RTL widget عن طريق arabic-tech-explainer، ومرتّب severity.
-- ✅ Phase 2 طبّقت المعتمد بس، بستايل المشروع، من غير ما تلمس منطق required/optional من غير إذن.
+- All forms (or the ones you chose, with the reason stated) are inventoried, and every field has: type
+  + required/optional + rules + their source.
+- Every field missing validation has a **suggestion** based on its type (with the locale defaults that
+  apply to the product).
+- If the backend was checked: a mismatch matrix that shows the security gaps and UX gaps clearly.
+- The report was presented in the user's language, ranked by severity.
+- Phase 2 applied only what was approved, in the project's style, without touching required/optional
+  logic without permission.
 
 ## Reference files
 
-- `references/angular.md` — اكتشاف وقراءة وكتابة Reactive + Template-driven.
-- `references/react.md` — اكتشاف وقراءة وكتابة RHF / Formik / Zod·Yup / controlled.
-- `references/inference.md` — جدول الاستنتاج الكامل + regex library + EG locale defaults.
-- `references/backend-dotnet.md` — قراءة FluentValidation من ريبو .NET منفصل + DTO↔form matching + mismatch detection.
-- `references/report-template.md` — الستراكتشر الإلزامي للتقرير + مثال widget للـ arabic-tech-explainer.
+- `references/angular.md` — detecting, reading and writing Reactive + Template-driven validation.
+- `references/react.md` — detecting, reading and writing RHF / Formik / Zod·Yup / controlled validation.
+- `references/inference.md` — the full inference table + regex library + locale defaults.
+- `references/backend-dotnet.md` — reading FluentValidation from a separate .NET repo + DTO↔form
+  matching + mismatch detection.
+- `references/report-template.md` — the mandatory report structure + a markdown example + the optional
+  RTL widget example for `arabic-tech-explainer`.

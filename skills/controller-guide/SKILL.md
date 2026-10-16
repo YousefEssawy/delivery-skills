@@ -91,7 +91,8 @@ Use this mode when the user asks to create or change a controller.
 
 ## Checklist (audit items — derived from the bundled guide)
 
-Universal rules (a controller is a finding if it breaks these):
+Default convention (this skill's house style — a controller is a finding if it breaks these, unless
+the project has a different established convention, see below):
 - **Block namespace** (`namespace X { … }`), not file-scoped.
 - Class named `Manage<Resource>Controller` (or the project's dominant role pattern).
 - Inherits the project's base controller that exposes the JWT subject.
@@ -108,6 +109,16 @@ Universal rules (a controller is a finding if it breaks these):
 - Field naming `_camelCase` + `readonly`.
 - One controller per file, grouped by feature/folder.
 - DELETE via `delete/{id}` on the route (for new controllers).
+
+The base-controller and actor-stamp rules assume JWT bearer auth. With another auth setup (cookies,
+API keys, an `ICurrentUser` service), apply the same rule with the project's equivalent of the
+current-user id.
+
+**When the project's convention differs.** If the project consistently follows a different
+convention for one of these rules (for example REST routes or file-scoped namespaces in every
+controller) and the user prefers to keep it, report it **once** as "project convention differs from
+the guide" and measure consistency against the project's convention instead of flagging every
+controller.
 
 Project-dependent (measure against the calibrated dominant pattern — do NOT force
 them if the project consistently omits them):

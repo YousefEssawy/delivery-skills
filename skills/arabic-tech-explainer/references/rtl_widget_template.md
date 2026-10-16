@@ -6,7 +6,7 @@ This is the canonical starting point for an `arabic-tech-explainer` widget. Copy
 
 Call `visualize:read_me` with `modules: ["mockup"]` once per session (silently), then call `visualize:show_widget` with:
 - a descriptive snake_case `title`
-- 1–3 short `loading_messages` in Egyptian Arabic (keep them boring/neutral if the content is sensitive)
+- 1–3 short `loading_messages` in the same Arabic variety as the explanation (keep them boring/neutral if the content is sensitive)
 - the `widget_code` below, with content swapped in
 
 ## The template

@@ -10,8 +10,9 @@
 > project already uses. When in doubt, find one existing controller in the
 > project and mirror it.
 >
-> **Assumed infrastructure (adapt as needed):** a shared base controller
-> exposing the JWT subject, a response/exception wrapper that turns domain
+> **Assumed infrastructure (adapt as needed):** JWT bearer auth with a shared
+> base controller exposing the JWT subject (with another auth setup, use the
+> project's equivalent of the current-user id), a response/exception wrapper that turns domain
 > exceptions into HTTP status codes, automatic model validation on
 > `[FromBody]` inputs, and a project-wide fallback auth policy that already
 > requires an authenticated user on every endpoint. If the project doesn't

@@ -58,7 +58,8 @@ opening each dialog, and after typing into fields that might grow), run the scan
 - whether the **page** scrolls horizontally (`documentElement.scrollWidth > clientWidth`),
 - the specific **elements** whose content exceeds their box and aren't inside a deliberate
   horizontal-scroll container (so you get a CSS selector to fix, not just "something overflows"),
-- any element whose right edge extends past the viewport.
+- any element that extends past the viewport's right edge, or, for elements laid out RTL, its left
+  edge (where RTL overflow spills); each entry says which edge.
 
 Read that file for the snippet and how to interpret its output. Paste it into the page via your
 tool's "run JavaScript" action; it returns JSON you can act on directly.

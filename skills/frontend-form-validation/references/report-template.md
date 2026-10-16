@@ -1,24 +1,64 @@
-# Report Template — التقرير كـ RTL widget
+# Report template
 
-التقرير بيتعرض عن طريق skill: **`arabic-tech-explainer`**. **متعملش CSS من الأول** — حمّل الـ `mockup` module (`visualize:read_me` modules:["mockup"]) واستخدم الـ template في `arabic-tech-explainer/references/rtl_widget_template.md` كنقطة بداية. اللي تحت ده هو **الستراكتشر الإلزامي + مثال** تتكيّف بيه.
+Write the report **in the user's language**. The default is plain markdown in chat (structure and
+example below). **Optional:** if the user writes Arabic and the `arabic-tech-explainer` skill is
+installed, render the same structure as an RTL widget through that skill (see
+[Optional: RTL widget](#optional-rtl-widget-via-arabic-tech-explainer)).
 
-## قواعد التايبوجرافي (نفس قواعد arabic-tech-explainer)
-- container `dir="rtl"` و `text-align:right`.
-- **كل English/رقم جوه عربي يتعزل** بـ `<bdi class="en">…</bdi>` و `.en{unicode-bidi:isolate}`. ده أهم شيء — يمنع الـ scrambling.
-- code/regex blocks: `direction:ltr; text-align:left; unicode-bidi:isolate; white-space:pre; font‑mono`.
-- خلايا الأرقام في الجداول: mono + معزولة عشان متلخبطش.
-- **كل الألوان CSS variables** (`var(--color-text-primary)` …) — **ممنوع** hex ثابت. وخط عربي (IBM Plex Sans Arabic).
-- الـ widget `title` snake_case ومميّز (مثلاً `forms_audit_report_users_module`).
+## Mandatory structure (in order)
+1. **Summary** — number of forms · number of fields · how many fields have validation · number of
+   gaps · number of mismatches · **overall risk** (Low / Medium / High). Plus a line if you sampled.
+2. **A table per form** — columns: `Field` · `Type (inferred)` · `Required/Optional` ·
+   `Frontend rules` · `Backend rules` · `Status` · `Suggested rule`.
+3. **Weak points ranked by severity** — High → Medium → Low, each with a short reason (why it is
+   High).
+4. **Frontend ↔ Backend mismatches** — if the backend was checked; focus on the 🔴 security gaps and
+   the 🔴 UX gaps.
+5. **What is done well** — positives, not only gaps.
+6. **Suggestions + an explicit question** — "Which suggestions should I apply?", then wait for
+   approval (Phase 2).
 
-## الستراكتشر الإلزامي (بالترتيب)
-1. **ملخص (Summary)** — كروت/سطور أرقام: عدد الفورمز · عدد الـ fields · كام field عليه validation · عدد الـ gaps · عدد الـ mismatches · **risk عام** (Low/Medium/High). + سطر لو عملت sampling.
-2. **جدول لكل form** — أعمدة: `Field` · `Type (inferred)` · `Required/Optional` · `Frontend rules` · `Backend rules` · `Status` · `Suggested rule`.
-3. **نقاط الضعف مرتّبة severity** — High ← Medium ← Low، كل واحدة بسبب قصير (ليه دي High).
-4. **Frontend ↔ Backend mismatch** — لو الباك متفحص؛ ركّز على الـ 🔴 security gaps والـ 🔴 UX gaps.
-5. **اللي معمول كويس** — positive، مش بس النواقص.
-6. **اقتراحات + سؤال صريح** — "تحب أطبّق أنهي اقتراحات؟" ثم استنى الموافقة (Phase 2).
+## Markdown example (default)
 
-## مثال widget (اختصره/وسّعه حسب البيانات)
+```markdown
+## Forms audit — Users module
+3 forms · 14 fields · 9 with validation · 5 gaps · 2 mismatches · overall risk: **High**
+
+### Login form
+| Field | Type | Req/Opt | Frontend | Backend | Status | Suggested |
+|---|---|---|---|---|---|---|
+| email | Email | Required | required | NotEmpty, EmailAddress | 🟡 | add email format |
+| password | Password | Required | — none | NotEmpty, MinimumLength(8) | 🔴 | required, minLength(8) |
+
+### Weak points
+- **High** — `password` in Login has no frontend validation while the backend requires
+  `MinimumLength(8)`: UX gap.
+
+### Done well
+- `email` is required on both sides.
+
+**Which suggestions should I apply?** Tell me the numbers / forms and I will apply only those.
+```
+
+## Optional: RTL widget via arabic-tech-explainer
+
+Use this path only when the user writes Arabic and `arabic-tech-explainer` is installed. **Do not write
+the CSS from scratch** — load the `mockup` module (`visualize:read_me` modules:["mockup"]) and start
+from the template in `arabic-tech-explainer/references/rtl_widget_template.md`. The structure above
+still applies.
+
+### Typography rules (the same as arabic-tech-explainer)
+- Container `dir="rtl"` and `text-align:right`.
+- **Every English run / number inside Arabic text is isolated** with `<bdi class="en">…</bdi>` and
+  `.en{unicode-bidi:isolate}`. This is the most important rule — it prevents scrambling.
+- Code / regex blocks: `direction:ltr; text-align:left; unicode-bidi:isolate; white-space:pre;
+  font-mono`.
+- Number cells in tables: mono + isolated so they do not reorder.
+- **All colours are CSS variables** (`var(--color-text-primary)` …) — **no** hard-coded hex. Use an
+  Arabic font (IBM Plex Sans Arabic).
+- The widget `title` is snake_case and specific (for example `forms_audit_report_users_module`).
+
+### Widget example (shorten / extend to fit the data)
 ```html
 <div dir="rtl" style="font-family:'IBM Plex Sans Arabic',sans-serif;text-align:right;
   color:var(--color-text-primary);background:var(--color-background-primary);
@@ -93,5 +133,6 @@
 </div>
 ```
 
-## بعد الـ widget (chat عادي)
-اكتب سطر/اتنين takeaway + سؤالك الصريح عن اللي يتطبّق. لو فيه حاجة مقلقة (security gap)، نبّه عليها بوضوح. **متطبّقش حاجة قبل ما المستخدم يختار.**
+## After the report
+Write a one- or two-line takeaway + your explicit question about what to apply. If something is
+worrying (a security gap), call it out clearly. **Do not apply anything before the user chooses.**
