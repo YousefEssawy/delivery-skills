@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// PreToolUse hook for Bash. When the command runs `git push` to a deploying branch, it shows a
+// PreToolUse hook for Bash and PowerShell. When the command runs `git push` to a deploying branch, it shows a
 // reminder to run the project's full test gate first. It never blocks or approves the command:
 // it always exits 0 and never sets permissionDecision, so the normal permission prompt still applies.
 

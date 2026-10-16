@@ -11,8 +11,8 @@ Works with Claude Code, Codex, Cursor, OpenCode and every agent the [Skills CLI]
 supports.
 
 **Contents:** [Install](#install) · [How they fit together](#how-they-fit-together) · [Delivery workflow](#delivery-workflow) ·
-[Review and planning](#review-and-planning) · [Backend](#backend-net) · [Frontend](#frontend) ·
-[Communication](#communication) · [Updating](#updating) · [Contributing](#contributing)
+[Review and planning](#review-and-planning) · [Backend](#backend-net) · [Frontend](#frontend) · [Mobile](#mobile) ·
+[Communication](#communication) · [Updating and releases](#updating-and-releases) · [Evals](#evals) · [Contributing](#contributing)
 
 ---
 
@@ -32,8 +32,19 @@ npx skills add YousefEssawy/delivery-skills --skill qa-rehearsal --global
 npx skills add YousefEssawy/delivery-skills --skill '*' --agent claude-code --global
 ```
 
-**On claude.ai** a skill can follow your account to every device: zip one skill folder (the folder with its `SKILL.md`)
-and upload it from *Customize › Skills › Add › Upload skill*.
+**As a Claude Code plugin** (all skills plus a push reminder hook):
+
+```text
+/plugin marketplace add YousefEssawy/delivery-skills
+/plugin install delivery-skills@delivery-skills
+```
+
+The hook shows a reminder to run the project's full test gate when the agent runs `git push` to `testing`, `staging`,
+`production`, `main` or `master`. It never blocks the push and needs `node` on your `PATH`.
+
+**On claude.ai** a skill can follow your account to every device: download its zip from the
+[latest release](https://github.com/YousefEssawy/delivery-skills/releases/latest) (one zip per skill, or
+`delivery-skills-all.zip`) and upload it from *Customize › Skills › Add › Upload skill*.
 
 Once installed, the agent picks a skill up on its own when your request matches it. You can also name it: "use
 qa-rehearsal on PROJ-123".
@@ -44,13 +55,17 @@ qa-rehearsal on PROJ-123".
 
 ```mermaid
 flowchart LR
-    A[Story starts] --> B[skills-router]
+    S[Sprint starts] --> K0[sprint-kickoff]
+    K0 --> A[Story starts]
+    A --> B[skills-router]
     B --> C[Build]
     C -->|editing existing code| D[change-impact-review]
     C --> E[review-all]
     E --> F[qa-rehearsal]
     F --> G[release-batch]
-    G --> H[QA tests]
+    G -. data-changing migration .-> M[migration-safety]
+    G --> EV[evidence-comment]
+    EV --> H[QA tests]
     H -->|bugs come in| I[bug-triage]
     I -->|real bug| C
     H -->|sprint ends| J[sprint-quality-report]
@@ -59,11 +74,12 @@ flowchart LR
 
 | Stage | Skill | One-line job |
 |---|---|---|
+| Sprint start | `sprint-kickoff` | Read every story first and ask the product owner every unclear point in one message. |
 | Plan | `skills-router` | Pick the checks for this task and map every acceptance criterion to a test. |
 | Build | `change-impact-review`, the backend and frontend guards | Change code without breaking what already works. |
 | Review | `review-all`, `git-commit` | Review the real diff with the right guards; commit with a clean message. |
-| Before QA | `qa-rehearsal` | Try every criterion live, the way QA will. |
-| Release | `release-batch` | One gate, one review, backend before its clients, a live smoke. |
+| Before QA | `qa-rehearsal`, `mobile-qa-selftest` | Try every criterion live, the way QA will (web and API, or on a device). |
+| Release | `release-batch`, `migration-safety`, `evidence-comment` | One gate, one review, no unapproved data change, backend before its clients, a live smoke, evidence QA can read. |
 | After QA | `bug-triage` | Real bug, not a bug, or a product question. |
 | Look back | `sprint-quality-report` | Compare two sprints and decide what to change. |
 | Run it all | `session-coordinator` | Split the work across sessions and accounts, and recover from crashes. |
@@ -103,6 +119,37 @@ totals, promotes the backend before any client that depends on it, and checks ev
 >
 > **You get:** the batch branch, the gate's summary table, the review result, the PRs, a smoke file with a correlation id
 > per changed endpoint, and draft evidence comments for each story still in testing.
+
+### `sprint-kickoff`
+Reads every story of a new sprint with all its comments and the decision register before any code is written. It finds
+contradictions, criteria that read two ways, unclear limits, missing error keys and empty states, dependencies between
+stories and criteria that cannot be tested. It keeps a local copy of each story, but the tracker stays the source of truth.
+
+> **Try:** "Start the sprint: read all its stories and tell me what we need to ask the product owner."
+>
+> **You get:** one numbered message for the product owner with both readings quoted and the reading we would build, a
+> dependency order, and the tests each criterion needs.
+
+### `migration-safety`
+Finds every database migration between the deployed branch and the tip and sorts each one into schema-only, can fail on
+existing rows, or data-changing. For each data change it gives the table, the columns and a read-only COUNT per
+environment, whether Down restores the data, what cannot be restored and the backup to take, then holds the release until
+someone approves. Works with EF Core, Django, Rails, Flyway, Liquibase, Prisma, Laravel and raw SQL.
+
+> **Try:** "Check the migrations between the deployed branch and this batch before we promote."
+>
+> **You get:** a table of every migration with its class, affected rows per environment, whether Down restores them and the
+> backup step, plus a ready-to-send approval message for each data-changing one.
+
+### `evidence-comment`
+Writes the comment that hands a story to QA: the build deployed, what changed per acceptance criterion, the live checks with
+correlation ids, the tests by name, and a "decided behaviour and known limits" section citing the decisions, so QA does not
+file them as bugs. It re-reads the story first, never comments on a Done story and shows you the text before posting.
+
+> **Try:** "Write the evidence comment for PROJ-123 now that build 412 is on the test environment."
+>
+> **You get:** a ready-to-post comment in your tracker's format (Jira wiki markup or Markdown), waiting for your approval,
+> with every check traceable to a correlation id or a test name.
 
 ### `session-coordinator`
 Runs a sprint across several agent sessions and accounts. It writes a brief file per task, names each session, keeps one
@@ -174,7 +221,8 @@ responses, layering). The rules come from the skill itself, not from the project
 
 ### `dotnet-backend-validation`
 Adds FluentValidation validators with the auto-validation pattern, or scans the backend for request models that have no
-validation. *Written in Egyptian Arabic.*
+validation. It detects the project's layout (layered, clean architecture, vertical slices) and follows the validation
+mechanism already in use.
 
 > **Try:** "Which requests have no validation?" or "Add a validator for CreateOrderRequest."
 >
@@ -182,7 +230,7 @@ validation. *Written in Egyptian Arabic.*
 
 ### `dotnet-backend-testing`
 Writes NUnit unit tests (constraint model and Moq), or scans for services, methods and validators with no tests.
-*Written in Egyptian Arabic.*
+It uses the test framework the project already has.
 
 > **Try:** "Write tests for OrderService" or "What is missing test coverage?"
 >
@@ -202,8 +250,7 @@ match, so a value never shifts by a day for users in another time zone.
 
 ### `frontend-form-validation`
 Audits every form in an Angular or React app: which inputs are required, which validation each one has, what it is
-missing, and where the frontend and a .NET backend disagree. Reports first, applies fixes after your approval.
-*Written in Egyptian Arabic.*
+missing, and where the frontend and a .NET backend disagree. Reports first, in your language, and applies fixes after your approval.
 
 > **Try:** "Audit the forms against the backend validation."
 >
@@ -236,10 +283,25 @@ every place it plugs in (routes, navigation, translations, dependency injection)
 
 ---
 
+## Mobile
+
+### `mobile-qa-selftest`
+Tests a mobile story (Flutter, React Native, native iOS or Android) the way QA will, on a real device or emulator, before
+hand-over: small and large phones, Android and iOS, light and dark, every language including RTL, large text, offline and
+slow network, background and resume, denied permissions, deep links, push taps, forms, double submits and paging. Every
+field and error is compared against the API contract.
+
+> **Try:** "Self-test PROJ-123 on the phone like QA would before I hand it over."
+>
+> **You get:** PASS / FAIL / NOT PRODUCIBLE / AMBIGUOUS per claim and device, with screenshots or recordings, the smallest fix
+> for each failure, and a "what QA must know" list for the evidence comment.
+
+---
+
 ## Communication
 
 ### `arabic-tech-explainer`
-Explains English technical material in Egyptian Arabic while keeping the English terms, numbers and code as they are,
+Explains English technical material in Arabic (Egyptian by default, or the variety you write in) while keeping the English terms, numbers and code as they are,
 rendered as a right-to-left widget so the mixed text never scrambles.
 
 > **Try:** "اشرح ده بالعربي" with a technical paragraph pasted.
@@ -253,7 +315,7 @@ rendered as a right-to-left widget so the mixed text never scrambles.
 [amElnagdy/guard-skills](https://github.com/amElnagdy/guard-skills) (`clean-code-guard`, `test-guard`, `docs-guard`).
 `review-all` and `release-batch` use them when they are installed.
 
-## Updating
+## Updating and releases
 
 Skills install as a copy, so a new version reaches your agent only when you update:
 
@@ -262,14 +324,25 @@ npx skills update                 # every installed skill
 npx skills update qa-rehearsal    # one skill
 ```
 
-Re-running `npx skills add YousefEssawy/delivery-skills` also fetches the latest. Every change is listed in
-[CHANGELOG.md](CHANGELOG.md), and releases are tagged `vMAJOR.MINOR.PATCH`.
+Re-running `npx skills add YousefEssawy/delivery-skills` also fetches the latest. In Claude Code, update the plugin from
+`/plugin`. Every change is listed in [CHANGELOG.md](CHANGELOG.md), and releases are tagged `vMAJOR.MINOR.PATCH`.
+
+Every push and pull request runs `node scripts/validate-skills.mjs` and `node scripts/validate-evals.mjs` (Node 20+). Pushing
+a tag such as `v1.1.0` validates, packages the skills (`node scripts/package-skills.mjs`) and attaches the zips to the
+GitHub release: one per skill plus `delivery-skills-all.zip`, with forward-slash paths so claude.ai accepts them.
+
+## Evals
+
+[`evals/evals.json`](evals/evals.json) holds behaviour checks for every skill: prompts that should and should not trigger
+it, and cases with the expectations a grader checks. Run them after changing a skill; see [evals/README.md](evals/README.md).
 
 ## Contributing
 
 - One folder per skill under `skills/`, with a `SKILL.md` whose front matter has `name` and `description`.
 - Keep project names, people, hosts and credentials out of every skill.
-- Bump the version and add a CHANGELOG entry with every change.
+- Every skill must work on any project: no project, company, person or host names (CI checks `scripts/deny-list.txt`).
+- Add or update the skill's cases in `evals/evals.json`.
+- Add a `## vX.Y.Z` section to CHANGELOG.md, bump `.claude-plugin/plugin.json`, then tag `vX.Y.Z`.
 
 ## License
 
