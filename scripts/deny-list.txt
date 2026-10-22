@@ -1,6 +1,0 @@
-# Text that must never appear in any file under skills/ (matched case-insensitively).
-# One term per line; blank lines and lines starting with # are ignored.
-autowinger
-devopsolution
-gama-ksa
-essawy

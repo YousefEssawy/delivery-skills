@@ -20,7 +20,11 @@ jobs:
         with:
           node-version: 20
       - name: Validate skills
-        run: node scripts/validate-skills.mjs
+        env:
+          DENY_LIST: ${{ secrets.DENY_LIST }}
+        run: |
+          if [ -z "$DENY_LIST" ]; then echo "The repository secret DENY_LIST is missing: a release must be checked against the private terms."; exit 1; fi
+          node scripts/validate-skills.mjs
       - name: Package skills
         run: node scripts/package-skills.mjs
       - name: Create the release if it does not exist

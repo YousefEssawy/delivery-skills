@@ -12,7 +12,20 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Require the private deny-list on main
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          DENY_LIST: ${{ secrets.DENY_LIST }}
+        run: |
+          if [ -z "$DENY_LIST" ]; then
+            echo "The repository secret DENY_LIST is missing: main must be checked against the private terms."
+            exit 1
+          fi
       - name: Validate skills
+        env:
+          # Repository secret: the private deny-list, one term per line (never stored in this repo). Without it
+          # (fork PRs) the private-term check is skipped with a WARNING; a push to main fails in the step above.
+          DENY_LIST: ${{ secrets.DENY_LIST }}
         run: node scripts/validate-skills.mjs
       - name: Validate evals
         run: node scripts/validate-evals.mjs
