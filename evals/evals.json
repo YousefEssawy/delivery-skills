@@ -29,7 +29,7 @@
       "cases": [
         {
           "id": "triage-1-by-design",
-          "prompt": "PROJ-90: 'Listings cannot be created in Egypt'. The launch decision PROJ-10 enables Saudi Arabia only.",
+          "prompt": "PROJ-90: 'Orders cannot be paid in a second currency'. The launch decision PROJ-10 supports one currency only.",
           "expectations": ["Classifies it as not a bug (by design) citing PROJ-10", "Drafts a reply that mentions the reporter", "Shows the draft before posting and does not post on its own"]
         },
         {

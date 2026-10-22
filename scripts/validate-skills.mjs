@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 // Checks every skills/<name>/ folder before it is packaged or released.
 // Usage: node scripts/validate-skills.mjs   (exit 0 = all skills valid, 1 = problems found)
+// The private deny-list is never stored in this public repo: it comes from the environment variable DENY_LIST (the
+// text, one term per line; in CI a repository secret) or DENY_LIST_FILE (a path outside the repo). Without either,
+// the deny-list check is skipped with a WARNING. A hit names the term's line number, never the term, so CI logs
+// stay clean. Terms match as case-insensitive substrings; a line starting with '!' is an allowed form instead (for
+// example the owner's public GitHub handle), removed from each line before the terms are matched.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -10,14 +15,35 @@ import { extractFrontmatter, parseFrontmatter } from './lib/frontmatter.mjs';
 const NAME_PATTERN = /^[a-z0-9-]+$/;
 const MAX_DESCRIPTION_CHARS = 1024;
 const MAX_FILE_BYTES = 1024 * 1024;
-const DENY_LIST_PATH = path.join(repoRoot, 'scripts', 'deny-list.txt');
+// Public files outside skills/ that are checked against the deny-list too.
+const DOC_PATHS = ['README.md', 'CHANGELOG.md', 'CONTRIBUTING.md', 'evals'];
 
 function readDenyList() {
-  return fs
-    .readFileSync(DENY_LIST_PATH, 'utf8')
+  const text = process.env.DENY_LIST_FILE ? fs.readFileSync(process.env.DENY_LIST_FILE, 'utf8') : process.env.DENY_LIST;
+  if (!text) {
+    console.warn('WARNING  no deny-list (DENY_LIST or DENY_LIST_FILE): the private-term check was skipped.');
+    return [];
+  }
+  return text
     .split(/\r?\n/)
-    .map((line) => line.trim().toLowerCase())
-    .filter((line) => line && !line.startsWith('#'));
+    .map((line, index) => ({ term: line.trim().toLowerCase(), number: index + 1 }))
+    .filter(({ term }) => term && !term.startsWith('#'));
+}
+
+function checkDocs(denyList) {
+  const problems = [];
+  for (const docPath of DOC_PATHS) {
+    const fullPath = path.join(repoRoot, docPath);
+    if (!fs.existsSync(fullPath)) continue;
+    const files = fs.statSync(fullPath).isDirectory()
+      ? listFilesRecursive(fullPath).map((relative) => path.join(docPath, relative))
+      : [docPath];
+    for (const file of files) {
+      const text = fs.readFileSync(path.join(repoRoot, file), 'utf8');
+      problems.push(...findDeniedText(text, file.split(path.sep).join('/'), denyList));
+    }
+  }
+  return problems;
 }
 
 function checkSkillManifest(skillName, skillDir) {
@@ -69,10 +95,13 @@ function checkFiles(skillDir, denyList) {
 
 function findDeniedText(text, displayPath, denyList) {
   const problems = [];
+  const allowed = denyList.filter(({ term }) => term.startsWith('!')).map(({ term }) => term.slice(1));
+  const denied = denyList.filter(({ term }) => !term.startsWith('!'));
   text.split(/\r?\n/).forEach((line, index) => {
-    const lowered = line.toLowerCase();
-    for (const term of denyList) {
-      if (lowered.includes(term)) problems.push(`${displayPath}:${index + 1} contains forbidden text "${term}"`);
+    // An allowed form (a '!' line, e.g. the owner's public handle) is removed before the denied terms are matched.
+    const lowered = allowed.reduce((current, form) => current.split(form).join(' '), line.toLowerCase());
+    for (const { term, number } of denied) {
+      if (lowered.includes(term)) problems.push(`${displayPath}:${index + 1} contains deny-list term #${number}`);
     }
   });
   return problems;
@@ -99,8 +128,13 @@ function main() {
     console.error('No skill folders found under skills/.');
     process.exit(1);
   }
+  const docProblems = checkDocs(denyList);
+  if (docProblems.length > 0) {
+    console.error('FAIL  repo docs and evals');
+    for (const problem of docProblems) console.error(`      - ${problem}`);
+  }
   console.log(`\n${skillNames.length - failedCount}/${skillNames.length} skills valid.`);
-  if (failedCount > 0) process.exit(1);
+  if (failedCount > 0 || docProblems.length > 0) process.exit(1);
 }
 
 main();

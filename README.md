@@ -98,7 +98,7 @@ and the UI in a real browser in both directions and themes.
 >
 > **You get:** a table per story with every claim marked PASS, FAIL (with the smallest fix), NOT PRODUCIBLE (with the
 > test that covers it) or AMBIGUOUS (with the question for the product owner), and correlation ids as evidence.
-> Example claim: *"Search finds a listing by a word typed from the middle of its title" → `q=يوتا` → 10 results → PASS.*
+> Example claim: *"Search finds an item by a word typed from the middle of its name" → `q=lamp` → 10 results → PASS.*
 
 ### `bug-triage`
 Judges new QA bugs before anyone fixes them. It reads the bug, its story and every comment, the product decisions and
@@ -108,7 +108,7 @@ the code, reproduces the bug, and gives each one a verdict.
 >
 > **You get:** one table of bug, verdict and the reason (with the decision that settles it), a draft reply for each
 > "not a bug" that mentions the reporter (shown to you before posting), and a test-first fix for each real bug.
-> Example: *"Listings can't be created in Egypt" → not a bug: the launch scope allows Saudi Arabia only (with its key).*
+> Example: *"Orders can't be paid in a second currency" → not a bug: the launch scope supports one currency only (with its key).*
 
 ### `release-batch`
 Releases several finished branches together, safely. It merges them into one batch branch, stops if a migration changes
@@ -326,6 +326,8 @@ npx skills update qa-rehearsal    # one skill
 
 Re-running `npx skills add YousefEssawy/delivery-skills` also fetches the latest. In Claude Code, update the plugin from
 `/plugin`. Every change is listed in [CHANGELOG.md](CHANGELOG.md), and releases are tagged `vMAJOR.MINOR.PATCH`.
+[claude-setup-public](https://github.com/YousefEssawy/claude-setup-public) installs the latest default branch, not a
+release tag, so `main` stays releasable: a change reaches `main` only through a PR with green CI.
 
 Every push and pull request runs `node scripts/validate-skills.mjs` and `node scripts/validate-evals.mjs` (Node 20+). Pushing
 a tag such as `v1.1.0` validates, packages the skills (`node scripts/package-skills.mjs`) and attaches the zips to the
@@ -340,7 +342,9 @@ it, and cases with the expectations a grader checks. Run them after changing a s
 
 - One folder per skill under `skills/`, with a `SKILL.md` whose front matter has `name` and `description`.
 - Keep project names, people, hosts and credentials out of every skill.
-- Every skill must work on any project: no project, company, person or host names (CI checks `scripts/deny-list.txt`).
+- Every skill must work on any project: no project, company, person or host names. CI checks `skills/`, `evals/`,
+  README, CHANGELOG and CONTRIBUTING against a private deny-list kept outside this repo (the repository secret
+  `DENY_LIST`, one term per line; locally `DENY_LIST_FILE=<path> node scripts/validate-skills.mjs`).
 - Add or update the skill's cases in `evals/evals.json`.
 - Add a `## vX.Y.Z` section to CHANGELOG.md, bump `.claude-plugin/plugin.json`, then tag `vX.Y.Z`.
 

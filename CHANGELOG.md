@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- The private deny-list no longer lives in this repo: CI reads it from the repository secret `DENY_LIST` (locally
+  `DENY_LIST_FILE=<path>`), names hits by line number only, and also checks README, CHANGELOG, CONTRIBUTING and
+  `evals/`. A push to `main` or a release fails when the secret is missing.
+- README and eval examples no longer hint at a real product's market.
+- README: claude-setup-public installs the latest default branch, so `main` stays releasable.
+
 ## v1.1.0 - 2026-10-16
 
 - New skills: `sprint-kickoff`, `migration-safety`, `evidence-comment`, `mobile-qa-selftest`.
