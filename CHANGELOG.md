@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- New lifecycle skills: `task-context`, `plan-and-ac-map`, `test-and-diagnose`, `independent-review`, `pre-pr-gate`, `pr-and-verify`.
+- Common skill structure documented in CONTRIBUTING.md; `validate-skills.mjs` fails a lifecycle skill that lacks a section and reports the existing skills that do.
+
 ## v1.1.0 - 2026-10-16
 
 - New skills: `sprint-kickoff`, `migration-safety`, `evidence-comment`, `mobile-qa-selftest`.

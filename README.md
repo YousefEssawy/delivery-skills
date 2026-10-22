@@ -11,7 +11,7 @@ Works with Claude Code, Codex, Cursor, OpenCode and every agent the [Skills CLI]
 supports.
 
 **Contents:** [Install](#install) · [How they fit together](#how-they-fit-together) · [Delivery workflow](#delivery-workflow) ·
-[Review and planning](#review-and-planning) · [Backend](#backend-net) · [Frontend](#frontend) · [Mobile](#mobile) ·
+[Lifecycle](#lifecycle) · [Review and planning](#review-and-planning) · [Backend](#backend-net) · [Frontend](#frontend) · [Mobile](#mobile) ·
 [Communication](#communication) · [Updating and releases](#updating-and-releases) · [Evals](#evals) · [Contributing](#contributing)
 
 ---
@@ -170,6 +170,28 @@ dashboard.
 >
 > **You get:** a dashboard with a report card per team, a before-and-after table, charts and an assessment, plus the raw
 > counts and how they were counted.
+
+---
+
+## Lifecycle
+
+A task moves through these skills in order. Each one follows the same sections (when to use, prerequisites, steps,
+outputs and evidence, failure and escalation, done when, never claim) and hands a file to the next: the AC map and the
+review file.
+
+| Step | Skill | One-line job |
+|---|---|---|
+| 1 | `task-context` | Learn the project's commands and conventions and read the task with every comment; refresh at set checkpoints. |
+| 2 | `plan-and-ac-map` | A plan sized to the change and an AC map: each acceptance criterion to an implementation and a verification. |
+| 3 | `test-and-diagnose` | Tests first (RED then GREEN), failures classified before any change, honest totals. |
+| 4 | `independent-review` | A read-only review of the real diff against the AC map; BLOCKER / MAJOR / MINOR; reviewed SHA equals HEAD. |
+| 5 | `pre-pr-gate` | Run and read the pre-PR gate script; PASS means ready for a PR, not published. |
+| 6 | `pr-and-verify` | Open the PR only when authorised, then verify its diff, head SHA and CI; handoff report. |
+
+The orchestration across these steps and the gate script itself (`gate.ps1`, with its configuration and the AC map and
+review templates) belong to claude-setup (the repository that installs these skills and owns the gate): see its `docs/lifecycle.md`.
+These skills only describe how to use the gate; they do not contain its logic, and when the script is not installed they
+say so and claim no readiness.
 
 ---
 
@@ -337,6 +359,8 @@ GitHub release: one per skill plus `delivery-skills-all.zip`, with forward-slash
 it, and cases with the expectations a grader checks. Run them after changing a skill; see [evals/README.md](evals/README.md).
 
 ## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the skill structure and the checks. In short:
 
 - One folder per skill under `skills/`, with a `SKILL.md` whose front matter has `name` and `description`.
 - Keep project names, people, hosts and credentials out of every skill.

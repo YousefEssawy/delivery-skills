@@ -10,6 +10,24 @@ import { extractFrontmatter, parseFrontmatter } from './lib/frontmatter.mjs';
 const NAME_PATTERN = /^[a-z0-9-]+$/;
 const MAX_DESCRIPTION_CHARS = 1024;
 const MAX_FILE_BYTES = 1024 * 1024;
+// Section headings every lifecycle skill must have (see CONTRIBUTING.md). Existing skills are only reported.
+const CONTRACT_HEADINGS = [
+  'When to use',
+  'Prerequisites',
+  'Steps',
+  'Outputs and evidence',
+  'Failure and escalation',
+  'Done when',
+  'Never claim',
+];
+const CONTRACT_SKILLS = new Set([
+  'task-context',
+  'plan-and-ac-map',
+  'test-and-diagnose',
+  'independent-review',
+  'pre-pr-gate',
+  'pr-and-verify',
+]);
 const DENY_LIST_PATH = path.join(repoRoot, 'scripts', 'deny-list.txt');
 
 function readDenyList() {
@@ -55,6 +73,15 @@ function checkDescription(description) {
   return [];
 }
 
+/** Contract headings missing from SKILL.md: level-2 headings, case-insensitive, optional "1." numbering. */
+function findMissingHeadings(skillDir) {
+  const body = fs.readFileSync(path.join(skillDir, 'SKILL.md'), 'utf8');
+  const found = new Set(
+    [...body.matchAll(/^##[ \t]+(?:\d+\.[ \t]*)?(.+?)[ \t]*$/gm)].map((match) => match[1].toLowerCase()),
+  );
+  return CONTRACT_HEADINGS.filter((heading) => !found.has(heading.toLowerCase()));
+}
+
 function checkFiles(skillDir, denyList) {
   const problems = [];
   for (const relativePath of listFilesRecursive(skillDir)) {
@@ -82,10 +109,19 @@ function main() {
   const denyList = readDenyList();
   const skillNames = listSkillNames();
   let failedCount = 0;
+  const lackingContract = [];
 
   for (const skillName of skillNames) {
     const skillDir = path.join(skillsRoot, skillName);
     const problems = [...checkSkillManifest(skillName, skillDir), ...checkFiles(skillDir, denyList)];
+    if (fs.existsSync(path.join(skillDir, 'SKILL.md'))) {
+      const missing = findMissingHeadings(skillDir);
+      if (missing.length > 0 && CONTRACT_SKILLS.has(skillName)) {
+        problems.push(`missing contract section(s): ${missing.join(', ')}`);
+      } else if (missing.length > 0) {
+        lackingContract.push(`${skillName} (${missing.length} missing)`);
+      }
+    }
     if (problems.length === 0) {
       console.log(`ok    ${skillName}`);
       continue;
@@ -98,6 +134,10 @@ function main() {
   if (skillNames.length === 0) {
     console.error('No skill folders found under skills/.');
     process.exit(1);
+  }
+  if (lackingContract.length > 0) {
+    console.log(`\nNote (not a failure): ${lackingContract.length} existing skills lack contract sections:`);
+    console.log(`  ${lackingContract.join(', ')}`);
   }
   console.log(`\n${skillNames.length - failedCount}/${skillNames.length} skills valid.`);
   if (failedCount > 0) process.exit(1);
