@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `sprint-quality-report`:
+  - adds bug severity, weighted bugs per story (Critical 4, High 3, Medium 2, Low 1), fix time and git activity;
+  - sorts the latest sprint's real bugs by effect on use (affects use / cosmetic / change request);
+  - requires a hand check of the keyword-based not-a-bug matches;
+  - weighs severity in the grade and lists Azure DevOps among the trackers.
 - The private deny-list no longer lives in this repo: CI reads it from the repository secret `DENY_LIST` (locally
   `DENY_LIST_FILE=<path>`), names hits by line number only, and also checks README, CHANGELOG, CONTRIBUTING and
   `evals/`. A push to `main` or a release fails when the secret is missing.
